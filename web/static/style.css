@@ -1,0 +1,89 @@
+:root {
+  --bg: #f4f2ec;
+  --fg: #1b1d1f;
+  --muted: #4d5762;
+  --accent: #0e6f5c;
+  --panel: #ffffff;
+  --error-bg: #fdecec;
+  --error-fg: #a81818;
+  --border: #d8d6cf;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: var(--fg);
+  background:
+    radial-gradient(circle at 10% 0%, #e6f7ef 0%, transparent 35%),
+    radial-gradient(circle at 90% 100%, #f9e8d1 0%, transparent 30%),
+    var(--bg);
+}
+
+.container {
+  max-width: 920px;
+  margin: 40px auto;
+  padding: 24px;
+}
+
+h1 {
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  margin: 0 0 20px 0;
+  color: var(--muted);
+}
+
+.form {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+label {
+  font-weight: 600;
+}
+
+input[type="url"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+}
+
+button {
+  width: fit-content;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 14px;
+}
+
+.panel.error {
+  background: var(--error-bg);
+  color: var(--error-fg);
+}
+
+pre {
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  font-family: "Iosevka", "SFMono-Regular", Menlo, monospace;
+}

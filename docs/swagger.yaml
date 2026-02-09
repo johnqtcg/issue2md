@@ -1,0 +1,81 @@
+basePath: /
+info:
+  contact: {}
+  description: Convert a GitHub Issue/Pull Request/Discussion URL into Markdown.
+  title: issue2md Web API
+  version: "1.0"
+paths:
+  /convert:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Fetch one GitHub issue, pull request, or discussion and render
+        it as markdown.
+      parameters:
+      - description: GitHub issue/pull/discussion URL
+        in: formData
+        name: url
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: markdown body
+          schema:
+            type: string
+        "400":
+          description: invalid request
+          schema:
+            type: string
+        "401":
+          description: unauthorized
+          schema:
+            type: string
+        "403":
+          description: forbidden
+          schema:
+            type: string
+        "404":
+          description: resource not found
+          schema:
+            type: string
+        "429":
+          description: rate limited
+          schema:
+            type: string
+        "500":
+          description: render failed
+          schema:
+            type: string
+        "502":
+          description: upstream failure
+          schema:
+            type: string
+      summary: Convert GitHub URL to Markdown
+      tags:
+      - convert
+  /openapi.json:
+    get:
+      description: Returns generated OpenAPI JSON. Run `make swagger` before calling
+        this endpoint.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: read failed
+          schema:
+            type: string
+        "503":
+          description: spec unavailable
+          schema:
+            type: string
+      summary: Get OpenAPI specification
+      tags:
+      - docs
+swagger: "2.0"

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>issue2md Web</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>issue2md Web</h1>
+    <p class="subtitle">Convert a GitHub Issue, Pull Request, or Discussion URL into Markdown.</p>
+
+    <form method="post" action="/convert" class="form">
+      <label for="url">GitHub URL</label>
+      <input id="url" name="url" type="url" required value="{{ .URL }}" placeholder="https://github.com/owner/repo/issues/123">
+      <button type="submit">Convert</button>
+    </form>
+
+    {{ if .Error }}
+      <section class="panel error">
+        <h2>Error</h2>
+        <p>{{ .Error }}</p>
+      </section>
+    {{ end }}
+
+    {{ if .Markdown }}
+      <section class="panel">
+        <h2>Markdown</h2>
+        <pre>{{ .Markdown }}</pre>
+      </section>
+    {{ end }}
+  </main>
+</body>
+</html>

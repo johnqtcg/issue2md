@@ -1,0 +1,72 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    # static check
+    - govet
+    - staticcheck
+    - unused
+    - ineffassign
+    - errcheck
+
+    # naming/style
+    - revive
+    - misspell
+    - gocritic
+
+    # complexity / structure
+    - gocyclo
+    - dupl
+
+    # quality enforcement
+    - goconst
+    - prealloc
+    - unparam
+    - nolintlint
+
+  disable:
+    - wsl
+    - gochecknoglobals
+    - gochecknoinits
+    - cyclop
+    - funlen
+
+  settings:
+    gocyclo:
+      min-complexity: 15
+
+    funlen:
+      lines: 120
+      statements: 80
+
+    dupl:
+      threshold: 120
+
+    lll:
+      line-length: 140
+
+    revive:
+      severity: warning
+      rules:
+        - name: var-naming
+        - name: unused-parameter
+        - name: receiver-naming
+        - name: error-naming
+        - name: exported
+        - name: indent-error-flow
+        - name: if-return
+        - name: redefines-builtin-id
+
+    misspell:
+      locale: US
+
+  exclusions:
+    # skip vendor, tmp, and *_test.go files
+    paths:
+      - vendor
+      - tmp
+      - '(.+)_test\.go'
+
+version: "2"
