@@ -18,6 +18,7 @@ SWAG_OUTPUT ?= docs
 
 .PHONY: help check-tools fmt test test-api-integration test-e2e-web cover cover-check lint install-swag swagger swagger-check \
 	build-all build-cli build-web build-issue2md build-issue2mdweb \
+	install-cli install-web \
 	run-cli run-web run-issue2md run-issue2mdweb ci clean web
 
 help: ## Show available targets
@@ -80,6 +81,12 @@ build-issue2md: ## Build cmd/issue2md
 build-issue2mdweb: ## Build cmd/issue2mdweb
 	@mkdir -p $(BIN_DIR)
 	$(GO) build -o $(BIN_DIR)/issue2mdweb ./cmd/issue2mdweb
+
+install-cli: ## Install CLI binary into GOBIN (or GOPATH/bin)
+	$(GO) install ./cmd/issue2md
+
+install-web: ## Install web binary into GOBIN (or GOPATH/bin)
+	$(GO) install ./cmd/issue2mdweb
 
 run-cli: run-issue2md ## Run CLI app (pass ARGS='...')
 

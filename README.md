@@ -66,14 +66,34 @@
   - `golangci-lint`（用于 `make lint`）
   - `swag`（用于 `make swagger`，也可先执行 `make install-swag`）
 
-### 2) 拉起 CLI（单条 URL）
+### 2) 安装 CLI 到 GOBIN（或 GOPATH/bin）
+
+远程安装（基于当前模块路径）:
+
+```bash
+go install github.com/johnqtcg/issue2md/cmd/issue2md@latest
+```
+
+本地安装（当前工作副本）:
+
+```bash
+make install-cli
+# 或
+go install ./cmd/issue2md
+```
+
+提示:
+- 若仓库是私有仓库，请配置 `GOPRIVATE` 与 GitHub 访问凭据。
+- 安装后请确认 `$GOBIN`（或 `$GOPATH/bin`）已在 `PATH` 中。
+
+### 3) 拉起 CLI（单条 URL）
 
 ```bash
 make build-cli
 ./bin/issue2md https://github.com/<owner>/<repo>/issues/<number>
 ```
 
-### 3) 批量导出
+### 4) 批量导出
 
 ```bash
 cat > urls.txt <<'EOF'
@@ -85,7 +105,7 @@ EOF
 ./bin/issue2md --input-file urls.txt --output out
 ```
 
-### 4) 拉起 Web 服务并验证
+### 5) 拉起 Web 服务并验证
 
 ```bash
 make web
@@ -99,7 +119,7 @@ curl -i http://127.0.0.1:8080/
 curl -i http://127.0.0.1:8080/swagger
 ```
 
-### 5) 认证与 AI 总结（可选）
+### 6) 认证与 AI 总结（可选）
 
 ```bash
 export GITHUB_TOKEN=<your_github_pat>
@@ -197,6 +217,8 @@ make swagger-check  # 校验 swagger 生成文件存在
 make build-all      # 构建全部二进制
 make build-cli      # 构建 issue2md
 make build-web      # 构建 issue2mdweb
+make install-cli    # 安装 issue2md 到 GOBIN（或 GOPATH/bin）
+make install-web    # 安装 issue2mdweb 到 GOBIN（或 GOPATH/bin）
 make run-cli ARGS="https://github.com/<owner>/<repo>/issues/1"
 make run-web
 make ci             # fmt + lint + test
