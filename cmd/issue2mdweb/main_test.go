@@ -147,7 +147,7 @@ func TestNewWebHandlerOpenAPISpecSuccess(t *testing.T) {
 	}
 }
 
-func TestNewWebHandlerSwaggerPageNoExternalCDNDependency(t *testing.T) {
+func TestNewWebHandlerSwaggerRedirect(t *testing.T) {
 	t.Parallel()
 
 	h := newWebHandler(webDeps{
@@ -160,15 +160,63 @@ func TestNewWebHandlerSwaggerPageNoExternalCDNDependency(t *testing.T) {
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 
+	if rec.Code != http.StatusTemporaryRedirect {
+		t.Fatalf("status = %d, want 307", rec.Code)
+	}
+	if got := rec.Header().Get("Location"); got != "/swagger/index.html" {
+		t.Fatalf("redirect location = %q, want /swagger/index.html", got)
+	}
+}
+
+func TestNewWebHandlerSwaggerIndexPage(t *testing.T) {
+	t.Parallel()
+
+	h := newWebHandler(webDeps{
+		parser:   &fakeWebParser{},
+		fetcher:  &fakeWebFetcher{},
+		renderer: &fakeWebRenderer{},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/swagger/index.html", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
 	body := rec.Body.String()
-	if strings.Contains(body, "unpkg.com") {
-		t.Fatalf("swagger page should not depend on external CDN:\n%s", body)
+	if !strings.Contains(body, "Swagger UI") {
+		t.Fatalf("swagger index should render swagger ui:\n%s", body)
 	}
 	if !strings.Contains(body, "/openapi.json") {
-		t.Fatalf("swagger page should include local spec endpoint:\n%s", body)
+		t.Fatalf("swagger index should include local spec endpoint:\n%s", body)
+	}
+	if !strings.Contains(body, "/swagger/assets/swagger-ui.css") {
+		t.Fatalf("swagger index should include local asset paths:\n%s", body)
+	}
+	if strings.Contains(body, "unpkg.com") {
+		t.Fatalf("swagger index should not depend on external CDN:\n%s", body)
+	}
+}
+
+func TestNewWebHandlerSwaggerAssetServedLocally(t *testing.T) {
+	t.Parallel()
+
+	h := newWebHandler(webDeps{
+		parser:   &fakeWebParser{},
+		fetcher:  &fakeWebFetcher{},
+		renderer: &fakeWebRenderer{},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/swagger/assets/swagger-ui.css", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, "text/css") {
+		t.Fatalf("content-type = %q, want text/css", ct)
 	}
 }
 

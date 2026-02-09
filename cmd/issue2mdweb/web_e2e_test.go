@@ -85,11 +85,18 @@ func TestIssue2mdWebE2EJourney(t *testing.T) {
 			wantInBody: "issue2md Web",
 		},
 		{
-			name:       "swagger page",
+			name:       "swagger page redirect",
 			method:     http.MethodGet,
 			path:       "/swagger",
+			wantStatus: http.StatusTemporaryRedirect,
+			wantInBody: "/swagger/index.html",
+		},
+		{
+			name:       "swagger index",
+			method:     http.MethodGet,
+			path:       "/swagger/index.html",
 			wantStatus: http.StatusOK,
-			wantInBody: "/openapi.json",
+			wantInBody: "Swagger UI",
 		},
 		{
 			name:       "openapi spec",

@@ -60,11 +60,18 @@ func TestWebAPIIntegrationContract(t *testing.T) {
 			wantInBody: "issue2md Web",
 		},
 		{
-			name:       "swagger page ok",
+			name:       "swagger page redirect",
 			method:     http.MethodGet,
 			path:       "/swagger",
+			wantStatus: http.StatusTemporaryRedirect,
+			wantInBody: "/swagger/index.html",
+		},
+		{
+			name:       "swagger index ok",
+			method:     http.MethodGet,
+			path:       "/swagger/index.html",
 			wantStatus: http.StatusOK,
-			wantInBody: "/openapi.json",
+			wantInBody: "Swagger UI",
 		},
 		{
 			name:       "openapi json ok",

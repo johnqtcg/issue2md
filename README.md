@@ -117,7 +117,43 @@ make web
 ```bash
 curl -i http://127.0.0.1:8080/
 curl -i http://127.0.0.1:8080/swagger
+curl -i http://127.0.0.1:8080/swagger/index.html
 ```
+
+Swagger UI 静态资源由服务本地托管（`/swagger/assets/*`），离线环境也可访问文档与调试接口。
+
+将 GitHub URL 转换为 Markdown 的两种方式：
+
+1) 浏览器表单
+
+- 打开 `http://127.0.0.1:8080/`
+- 在输入框粘贴 URL（Issue/PR/Discussion）
+- 点击 `Convert`
+- 浏览器会收到 `text/plain` 响应，即 Markdown 正文，可直接复制保存
+
+2) API 调用（推荐脚本化）
+
+```bash
+curl -sS -X POST http://127.0.0.1:8080/convert \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'url=https://github.com/<owner>/<repo>/issues/1'
+```
+
+保存为本地 `.md` 文件：
+
+```bash
+curl -sS -X POST http://127.0.0.1:8080/convert \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'url=https://github.com/<owner>/<repo>/pull/2' \
+  -o out.md
+```
+
+接口约定（见 `cmd/issue2mdweb/handler.go`）:
+
+- 路径: `POST /convert`
+- 入参: form 字段 `url`
+- 出参: `text/plain; charset=utf-8`（Markdown 内容）
+- 常见错误码: `400`（参数错误）、`401/403`（鉴权）、`404`（资源不存在）、`429`（限流）、`502`（上游错误）
 
 ### 6) 认证与 AI 总结（可选）
 
@@ -197,7 +233,9 @@ issue2md --input-file urls.txt --output out [flags]
 - `GET /` 页面入口
 - `POST /convert` 转换接口（表单字段 `url`）
 - `GET /openapi.json` 返回本地生成的 OpenAPI JSON
-- `GET /swagger` 文档入口页
+- `GET /swagger` 跳转到 Swagger UI 页面
+- `GET /swagger/index.html` Swagger UI 文档与调试页面（Try it out）
+- `GET /swagger/assets/*` 本地 Swagger UI 静态资源（无外网依赖）
 
 OpenAPI 文档由 `make swagger` 生成到 `docs/`。
 
@@ -250,7 +288,6 @@ make clean          # 清理 bin 与覆盖率产物
   - `make lint`
   - `make test`
   - `make swagger-check`（涉及 API 文档时）
-- CI 状态: `Not found in repo`（未发现 `.github/workflows/*`）
 
 ## 联系信息
 

@@ -45,19 +45,3 @@ const defaultIndexTemplate = `<!doctype html>
   </main>
 </body>
 </html>`
-
-const swaggerDocsPage = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>issue2md OpenAPI</title>
-</head>
-<body>
-  <main>
-    <h1>issue2md OpenAPI</h1>
-    <p>OpenAPI spec is generated locally by <code>make swagger</code>.</p>
-    <p><a href="/openapi.json">/openapi.json</a></p>
-  </main>
-</body>
-</html>`

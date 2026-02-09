@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/johnqtcg/issue2md/internal/converter"
@@ -13,6 +14,7 @@ import (
 )
 
 const defaultOpenAPISpecPath = "docs/swagger.json"
+const defaultSwaggerUIDir = "web/swaggerui"
 
 type webDeps struct {
 	parser          parser.URLParser
@@ -20,6 +22,7 @@ type webDeps struct {
 	renderer        converter.Renderer
 	tmpl            *template.Template
 	openAPISpecPath string
+	swaggerUIDir    string
 }
 
 type webHandler struct {
@@ -28,6 +31,7 @@ type webHandler struct {
 	renderer        converter.Renderer
 	tmpl            *template.Template
 	openAPISpecPath string
+	swaggerUIDir    string
 }
 
 func newWebHandler(deps webDeps) http.Handler {
@@ -40,6 +44,7 @@ func newWebHandler(deps webDeps) http.Handler {
 	if openAPISpecPath == "" {
 		openAPISpecPath = defaultOpenAPISpecPath
 	}
+	swaggerUIDir := resolveSwaggerUIDir(deps.swaggerUIDir)
 
 	handler := &webHandler{
 		parser:          deps.parser,
@@ -47,14 +52,17 @@ func newWebHandler(deps webDeps) http.Handler {
 		renderer:        deps.renderer,
 		tmpl:            tmpl,
 		openAPISpecPath: openAPISpecPath,
+		swaggerUIDir:    swaggerUIDir,
 	}
 
 	mux := http.NewServeMux()
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
+	mux.Handle("/swagger/assets/", http.StripPrefix("/swagger/assets/", http.FileServer(http.Dir(swaggerUIDir))))
 	mux.HandleFunc("/", handler.handleIndex)
 	mux.HandleFunc("/convert", handler.handleConvert)
 	mux.HandleFunc("/openapi.json", handler.handleOpenAPISpec)
-	mux.HandleFunc("/swagger", handler.handleSwaggerUI)
+	mux.HandleFunc("/swagger", handler.handleSwaggerRoot)
+	mux.HandleFunc("/swagger/index.html", handler.handleSwaggerUI)
 
 	return mux
 }
@@ -163,15 +171,53 @@ func (h *webHandler) handleOpenAPISpec(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *webHandler) handleSwaggerRoot(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	http.Redirect(w, r, "/swagger/index.html", http.StatusTemporaryRedirect)
+}
+
 func (h *webHandler) handleSwaggerUI(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	indexPath := filepath.Join(h.swaggerUIDir, "index.html")
+	page, err := os.ReadFile(indexPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(w, "swagger ui assets not found", http.StatusServiceUnavailable)
+			return
+		}
+		http.Error(w, "read swagger ui index failed", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if _, err := w.Write([]byte(swaggerDocsPage)); err != nil {
+	if _, err := w.Write(page); err != nil {
 		http.Error(w, "write response failed", http.StatusInternalServerError)
 	}
+}
+
+func resolveSwaggerUIDir(configured string) string {
+	if path := strings.TrimSpace(configured); path != "" {
+		return path
+	}
+
+	candidates := []string{
+		defaultSwaggerUIDir,
+		filepath.Join("..", "..", defaultSwaggerUIDir),
+	}
+	for _, candidate := range candidates {
+		info, err := os.Stat(candidate)
+		if err == nil && info.IsDir() {
+			return candidate
+		}
+	}
+	return defaultSwaggerUIDir
 }
 
 func fetchHTTPStatusFromError(err error) int {
