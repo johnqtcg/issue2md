@@ -3,18 +3,18 @@ package main
 import (
 	"errors"
 	"html/template"
+	"io/fs"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/johnqtcg/issue2md/internal/converter"
 	gh "github.com/johnqtcg/issue2md/internal/github"
 	"github.com/johnqtcg/issue2md/internal/parser"
+	webassets "github.com/johnqtcg/issue2md/web"
 )
 
 const defaultOpenAPISpecPath = "docs/swagger.json"
-const defaultSwaggerUIDir = "web/swaggerui"
 
 type webDeps struct {
 	parser          parser.URLParser
@@ -22,7 +22,6 @@ type webDeps struct {
 	renderer        converter.Renderer
 	tmpl            *template.Template
 	openAPISpecPath string
-	swaggerUIDir    string
 }
 
 type webHandler struct {
@@ -31,7 +30,6 @@ type webHandler struct {
 	renderer        converter.Renderer
 	tmpl            *template.Template
 	openAPISpecPath string
-	swaggerUIDir    string
 }
 
 func newWebHandler(deps webDeps) http.Handler {
@@ -44,7 +42,6 @@ func newWebHandler(deps webDeps) http.Handler {
 	if openAPISpecPath == "" {
 		openAPISpecPath = defaultOpenAPISpecPath
 	}
-	swaggerUIDir := resolveSwaggerUIDir(deps.swaggerUIDir)
 
 	handler := &webHandler{
 		parser:          deps.parser,
@@ -52,12 +49,13 @@ func newWebHandler(deps webDeps) http.Handler {
 		renderer:        deps.renderer,
 		tmpl:            tmpl,
 		openAPISpecPath: openAPISpecPath,
-		swaggerUIDir:    swaggerUIDir,
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
-	mux.Handle("/swagger/assets/", http.StripPrefix("/swagger/assets/", http.FileServer(http.Dir(swaggerUIDir))))
+	staticFS := mustSubFS(webassets.FS, "static")
+	swaggerUIFS := mustSubFS(webassets.FS, "swaggerui")
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
+	mux.Handle("/swagger/assets/", http.StripPrefix("/swagger/assets/", http.FileServer(http.FS(swaggerUIFS))))
 	mux.HandleFunc("/", handler.handleIndex)
 	mux.HandleFunc("/convert", handler.handleConvert)
 	mux.HandleFunc("/openapi.json", handler.handleOpenAPISpec)
@@ -185,10 +183,9 @@ func (h *webHandler) handleSwaggerUI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	indexPath := filepath.Join(h.swaggerUIDir, "index.html")
-	page, err := os.ReadFile(indexPath)
+	page, err := fs.ReadFile(webassets.FS, "swaggerui/index.html")
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			http.Error(w, "swagger ui assets not found", http.StatusServiceUnavailable)
 			return
 		}
@@ -202,22 +199,12 @@ func (h *webHandler) handleSwaggerUI(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func resolveSwaggerUIDir(configured string) string {
-	if path := strings.TrimSpace(configured); path != "" {
-		return path
+func mustSubFS(root fs.FS, dir string) fs.FS {
+	sub, err := fs.Sub(root, dir)
+	if err != nil {
+		panic("embedded fs missing " + dir)
 	}
-
-	candidates := []string{
-		defaultSwaggerUIDir,
-		filepath.Join("..", "..", defaultSwaggerUIDir),
-	}
-	for _, candidate := range candidates {
-		info, err := os.Stat(candidate)
-		if err == nil && info.IsDir() {
-			return candidate
-		}
-	}
-	return defaultSwaggerUIDir
+	return sub
 }
 
 func fetchHTTPStatusFromError(err error) int {
@@ -281,5 +268,4 @@ func fetchStatusFromWrappedStatus(err error) (int, bool) {
 		}
 		return 0, false
 	}
-
 }

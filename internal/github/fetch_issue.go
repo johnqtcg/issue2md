@@ -110,7 +110,12 @@ func (f *fetcher) fetchIssueTimeline(ctx context.Context, ref ResourceRef) ([]Ti
           ... on AssignedEvent {
             createdAt
             actor { login }
-            assignee { __typename }
+            assignee {
+              __typename
+              ... on User { login }
+              ... on Bot { login }
+              ... on Mannequin { login }
+            }
           }
           ... on MilestonedEvent {
             createdAt

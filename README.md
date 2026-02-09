@@ -3,7 +3,7 @@
 将 GitHub Issue / Pull Request / Discussion URL 转换为结构化 Markdown 归档文档的 Go 工具，支持 CLI 批量处理与 Web 转换接口。
 
 本项目使用codex 5.3 coding agent 完成开发，遵循SDD(Spec-Driven Development)，即规范驱动开发工作流实现。
-可参考开源项目:https://github.com/github/spec-kit
+可参考开源项目: https://github.com/github/spec-kit
 
 - 语言与版本: Go `1.25.4`（见 `go.mod`）
 - 核心依赖: `google/go-github/v72`、`oauth2`（见 `go.mod`）

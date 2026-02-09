@@ -220,6 +220,41 @@ func TestNewWebHandlerSwaggerAssetServedLocally(t *testing.T) {
 	}
 }
 
+func TestNewWebHandlerSwaggerAssetsDoNotDependOnCWD(t *testing.T) {
+	t.Parallel()
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chdir(wd)
+	})
+	if err := os.Chdir(t.TempDir()); err != nil {
+		t.Fatalf("chdir tempdir: %v", err)
+	}
+
+	h := newWebHandler(webDeps{
+		parser:   &fakeWebParser{},
+		fetcher:  &fakeWebFetcher{},
+		renderer: &fakeWebRenderer{},
+	})
+
+	reqIndex := httptest.NewRequest(http.MethodGet, "/swagger/index.html", nil)
+	recIndex := httptest.NewRecorder()
+	h.ServeHTTP(recIndex, reqIndex)
+	if recIndex.Code != http.StatusOK {
+		t.Fatalf("swagger index status = %d, want 200", recIndex.Code)
+	}
+
+	reqAsset := httptest.NewRequest(http.MethodGet, "/swagger/assets/swagger-ui.css", nil)
+	recAsset := httptest.NewRecorder()
+	h.ServeHTTP(recAsset, reqAsset)
+	if recAsset.Code != http.StatusOK {
+		t.Fatalf("swagger asset status = %d, want 200", recAsset.Code)
+	}
+}
+
 func TestNewWebHandlerConvertStatusMapping(t *testing.T) {
 	t.Parallel()
 

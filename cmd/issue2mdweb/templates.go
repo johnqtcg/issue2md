@@ -3,24 +3,21 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"os"
-	"path/filepath"
+
+	webassets "github.com/johnqtcg/issue2md/web"
 )
 
 func loadTemplate() (*template.Template, error) {
-	path := filepath.Join("web", "templates", "index.html")
-	if _, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
-			return template.New("index").Parse(defaultIndexTemplate)
-		}
-		return nil, fmt.Errorf("stat template file: %w", err)
+	tmpl, err := template.ParseFS(webassets.FS, "templates/index.html")
+	if err == nil {
+		return tmpl, nil
 	}
 
-	tmpl, err := template.ParseFiles(path)
-	if err != nil {
-		return nil, fmt.Errorf("parse template file: %w", err)
+	fallback, fallbackErr := template.New("index").Parse(defaultIndexTemplate)
+	if fallbackErr != nil {
+		return nil, fmt.Errorf("parse embedded template: %w", err)
 	}
-	return tmpl, nil
+	return fallback, nil
 }
 
 const defaultIndexTemplate = `<!doctype html>

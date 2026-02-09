@@ -310,6 +310,95 @@ func TestFetchIssueTimelineUsesUnionFragments(t *testing.T) {
 	}
 }
 
+func TestFetchIssueTimelineAssignedEventUsesAssigneeLogin(t *testing.T) {
+	t.Parallel()
+
+	clientHTTP := newTestHTTPClient(func(r *http.Request) (*http.Response, error) {
+		switch r.URL.Path {
+		case "/repos/octo/repo/issues/1":
+			return mustJSONResponse(t, http.StatusOK, map[string]any{
+				"number":     1,
+				"title":      "Issue title",
+				"state":      "open",
+				"body":       "Issue body",
+				"html_url":   "https://github.com/octo/repo/issues/1",
+				"created_at": "2026-01-01T00:00:00Z",
+				"updated_at": "2026-01-01T00:00:00Z",
+				"user":       map[string]any{"login": "alice"},
+			}), nil
+		case "/graphql":
+			var req struct {
+				Query string `json:"query"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				t.Fatalf("decode graphql request: %v", err)
+			}
+			if !strings.Contains(req.Query, "assignee {") || !strings.Contains(req.Query, "... on User") || !strings.Contains(req.Query, "login") {
+				t.Fatalf("issue timeline query should include assignee user login fragment:\n%s", req.Query)
+			}
+
+			return mustJSONResponse(t, http.StatusOK, map[string]any{
+				"data": map[string]any{
+					"repository": map[string]any{
+						"issue": map[string]any{
+							"timelineItems": map[string]any{
+								"nodes": []map[string]any{
+									{
+										"__typename": "AssignedEvent",
+										"createdAt":  "2026-01-02T00:00:00Z",
+										"actor":      map[string]any{"login": "assigner"},
+										"assignee":   map[string]any{"login": "assignee-user"},
+									},
+								},
+								"pageInfo": map[string]any{
+									"hasNextPage": false,
+									"endCursor":   "",
+								},
+							},
+						},
+					},
+				},
+			}), nil
+		default:
+			return notFoundResponse(r.URL.Path), nil
+		}
+	})
+
+	fetcher, err := NewFetcher(Config{
+		HTTPClient:  clientHTTP,
+		RESTBaseURL: "https://api.test/",
+		GraphQLURL:  "https://api.test/graphql",
+	})
+	if err != nil {
+		t.Fatalf("NewFetcher error = %v, want nil", err)
+	}
+
+	got, err := fetcher.Fetch(context.Background(), ResourceRef{
+		Owner:  "octo",
+		Repo:   "repo",
+		Number: 1,
+		Type:   ResourceIssue,
+		URL:    "https://github.com/octo/repo/issues/1",
+	}, FetchOptions{IncludeComments: false})
+	if err != nil {
+		t.Fatalf("Fetch error = %v, want nil", err)
+	}
+
+	var assigned *TimelineEvent
+	for i := range got.Timeline {
+		if got.Timeline[i].EventType == "assigned" {
+			assigned = &got.Timeline[i]
+			break
+		}
+	}
+	if assigned == nil {
+		t.Fatalf("timeline missing assigned event: %#v", got.Timeline)
+	}
+	if assigned.Details != "assignee-user" {
+		t.Fatalf("assigned details = %q, want assignee-user", assigned.Details)
+	}
+}
+
 func hasTimelineEvent(events []TimelineEvent, want string) bool {
 	for _, event := range events {
 		if event.EventType == want {
