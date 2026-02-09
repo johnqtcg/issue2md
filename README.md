@@ -33,7 +33,7 @@
 │   └── issue2mdweb
 │       ├── main.go              # Web 服务入口（默认 :8080）
 │       ├── handler.go           # HTTP 路由与处理器
-│       ├── templates.go         # HTML 模板与 Swagger 页面
+│       ├── templates.go         # HTML 模板加载（含内置回退模板）
 │       └── main_test.go
 ├── internal
 │   ├── cli                      # CLI 编排、输出、批处理、退出码
@@ -44,6 +44,11 @@
 ├── web
 │   ├── templates
 │   │   └── index.html
+│   ├── swaggerui
+│   │   ├── index.html           # 本地 Swagger UI 页面
+│   │   ├── swagger-ui.css
+│   │   ├── swagger-ui-bundle.js
+│   │   └── swagger-ui-standalone-preset.js
 │   └── static
 │       └── style.css
 ├── docs
@@ -113,6 +118,7 @@ make web
 ```
 
 服务默认监听 `:8080`（见 `cmd/issue2mdweb/main.go`）。
+可通过 `ISSUE2MD_WEB_ADDR` 覆盖监听地址，例如：`ISSUE2MD_WEB_ADDR=127.0.0.1:18080 ./bin/issue2mdweb`。
 
 ```bash
 curl -i http://127.0.0.1:8080/
@@ -246,6 +252,8 @@ make help           # 查看所有目标
 make check-tools    # 检查 Go/gofmt，提示可选工具 golangci-lint/swag
 make fmt            # 格式化所有受 Git 跟踪的 .go 文件
 make test           # 运行全部测试
+make test-api-integration # 运行 Web API 集成测试（需 ISSUE2MD_API_INTEGRATION=1）
+make test-e2e-web   # 运行 Web E2E（需 ISSUE2MD_E2E=1）
 make cover          # 覆盖率报告（coverage.out）
 make cover-check    # 覆盖率门禁（默认 >= 80，可用 COVER_MIN 调整）
 make lint           # golangci-lint run --config .golangci.yaml ./...
