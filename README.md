@@ -2,6 +2,9 @@
 
 将 GitHub Issue / Pull Request / Discussion URL 转换为结构化 Markdown 归档文档的 Go 工具，支持 CLI 批量处理与 Web 转换接口。
 
+本项目使用codex 5.3 coding agent 完成开发，遵循SDD(Spec-Driven Development)，即规范驱动开发工作流实现。
+可参考开源项目:https://github.com/github/spec-kit
+
 - 语言与版本: Go `1.25.4`（见 `go.mod`）
 - 核心依赖: `google/go-github/v72`、`oauth2`（见 `go.mod`）
 - 入口程序: `cmd/issue2md`（CLI）、`cmd/issue2mdweb`（Web）
@@ -22,11 +25,11 @@
 ```text
 .
 ├── AGENTS.md
-├── constitution.md
-├── Makefile
+├── constitution.md              # 项目开发宪法
+├── Makefile                     # 项目 Makefile
 ├── go.mod
 ├── go.sum
-├── cmd
+├── cmd                          # 入口程序
 │   ├── issue2md
 │   │   ├── main.go              # CLI 入口
 │   │   └── main_test.go
@@ -54,12 +57,12 @@
 ├── docs
 │   ├── swagger.json             # 生成产物（OpenAPI）
 │   └── swagger.yaml             # 生成产物（OpenAPI）
-└── specs
-    └── 001-core-functionality
-        ├── spec.md
-        ├── plan.md
-        ├── tasks.md
-        └── api-sketch.md
+└── specs                        # specs 目录
+    └── 001-core-functionality   # 功能需求文档
+        ├── spec.md              # 规范文档     
+        ├── plan.md              # 计划文档
+        ├── tasks.md             # 任务列表
+        └── api-sketch.md        # api 草图
 ```
 
 ## 快速开始
@@ -77,6 +80,27 @@
 
 ```bash
 go install github.com/johnqtcg/issue2md/cmd/issue2md@latest
+
+# 验证是否安装成功
+which issue2md
+/Users/john/go/bin/issue2md
+
+# 转换示例
+issue2md https://github.com/github/spec-kit/issues/75
+OK url=https://github.com/github/spec-kit/issues/75 type=issue output=github-spec-kit-issue-75.md
+
+# 查看文档
+head -n 10 github-spec-kit-issue-75.md
+---
+type: 'issue'
+title: 'SpecKit creates the illusion of work, generating a bunch of text'
+number: 75
+state: 'open'
+author: 'NaikSoftware'
+created_at: '2025-09-08T11:45:16Z'
+updated_at: '2025-11-01T04:58:22Z'
+url: 'https://github.com/github/spec-kit/issues/75'
+labels: []
 ```
 
 本地安装（当前工作副本）:
@@ -91,7 +115,7 @@ go install ./cmd/issue2md
 - 若仓库是私有仓库，请配置 `GOPRIVATE` 与 GitHub 访问凭据。
 - 安装后请确认 `$GOBIN`（或 `$GOPATH/bin`）已在 `PATH` 中。
 
-### 3) 拉起 CLI（单条 URL）
+### 3) 运行 CLI（单条 URL）
 
 ```bash
 make build-cli
@@ -110,7 +134,7 @@ EOF
 ./bin/issue2md --input-file urls.txt --output out
 ```
 
-### 5) 拉起 Web 服务并验证
+### 5) 运行 Web 服务并验证
 
 ```bash
 make web
@@ -278,14 +302,11 @@ make clean          # 清理 bin 与覆盖率产物
 - 实施计划: `specs/001-core-functionality/plan.md`
 - 开发任务拆分: `specs/001-core-functionality/tasks.md`
 - API 草案: `specs/001-core-functionality/api-sketch.md`
-- 生成的 OpenAPI:
-  - `docs/swagger.json`
-  - `docs/swagger.yaml`
 - Lint 配置: `.golangci.yaml`
 
 ## 文档维护规则
 
-- 维护责任人: `Not found in repo`
+- 维护责任人: johnqtcg
 - 更新时机:
   - 新增/变更 CLI flags 后
   - 新增/变更 HTTP 路由后
