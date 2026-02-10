@@ -116,6 +116,11 @@ func (a *App) Run(ctx context.Context, args []string) int {
 	}
 
 	renderer := a.rendererFactory.New(cfg)
+	singleStatusOutput := a.stdout
+	if validated.Mode == ModeSingle && cfg.Stdout {
+		// Keep stdout pure markdown when --stdout is used in single mode.
+		singleStatusOutput = a.stderr
+	}
 
 	switch validated.Mode {
 	case ModeSingle:
@@ -123,10 +128,10 @@ func (a *App) Run(ctx context.Context, args []string) int {
 		if runErr != nil {
 			item.Status = StatusFailed
 			item.Reason = runErr.Error()
-			writeStatusLine(a.stdout, item)
+			writeStatusLine(singleStatusOutput, item)
 			return ResolveExitCode(runErr, false, 0)
 		}
-		writeStatusLine(a.stdout, item)
+		writeStatusLine(singleStatusOutput, item)
 		return ExitOK
 	case ModeBatch:
 		summary, runErr := a.runBatch(ctx, cfg, fetcher, renderer)

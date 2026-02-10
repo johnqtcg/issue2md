@@ -5,6 +5,7 @@ import (
 
 	"github.com/johnqtcg/issue2md/internal/config"
 	gh "github.com/johnqtcg/issue2md/internal/github"
+	"github.com/johnqtcg/issue2md/internal/parser"
 )
 
 const (
@@ -38,6 +39,9 @@ func ResolveExitCode(err error, isBatch bool, failed int) int {
 
 	var cErr *config.ConflictError
 	if errors.As(err, &cErr) {
+		return ExitInvalidArguments
+	}
+	if errors.Is(err, parser.ErrInvalidGitHubURL) {
 		return ExitInvalidArguments
 	}
 

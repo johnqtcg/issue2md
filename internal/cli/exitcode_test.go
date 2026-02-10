@@ -2,9 +2,11 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/johnqtcg/issue2md/internal/config"
+	"github.com/johnqtcg/issue2md/internal/parser"
 )
 
 func TestResolveExitCode(t *testing.T) {
@@ -20,6 +22,7 @@ func TestResolveExitCode(t *testing.T) {
 		{name: "success", err: nil, isBatch: false, failed: 0, wantCode: ExitOK},
 		{name: "validation error", err: config.NewValidationError("url", "bad"), isBatch: false, failed: 0, wantCode: ExitInvalidArguments},
 		{name: "conflict error", err: config.NewConflictError("--a", "--b"), isBatch: false, failed: 0, wantCode: ExitInvalidArguments},
+		{name: "invalid github url", err: fmt.Errorf("run single URL: %w", fmt.Errorf("parse URL: %w", parser.ErrInvalidGitHubURL)), isBatch: false, failed: 0, wantCode: ExitInvalidArguments},
 		{name: "auth error 401", err: errors.New("http status 401: bad credentials"), isBatch: false, failed: 0, wantCode: ExitAuth},
 		{name: "auth error 403", err: errors.New("http status 403: resource not accessible"), isBatch: false, failed: 0, wantCode: ExitAuth},
 		{name: "rate limit 403 should not be auth", err: errors.New("http status 403: API rate limit exceeded"), isBatch: false, failed: 0, wantCode: ExitRuntime},

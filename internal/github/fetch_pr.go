@@ -42,6 +42,12 @@ func (f *fetcher) fetchPullRequest(ctx context.Context, ref ResourceRef, opts Fe
 		return data, nil
 	}
 
+	issueComments, err := f.rest.listIssueComments(ctx, ref.Owner, ref.Repo, ref.Number)
+	if err != nil {
+		return IssueData{}, fmt.Errorf("fetch pull request issue comments: %w", err)
+	}
+	data.Thread = append(data.Thread, mapIssueComments(issueComments)...)
+
 	reviews, err := f.rest.listPullRequestReviews(ctx, ref.Owner, ref.Repo, ref.Number)
 	if err != nil {
 		return IssueData{}, fmt.Errorf("fetch pull request reviews: %w", err)

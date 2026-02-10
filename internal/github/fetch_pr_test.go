@@ -27,6 +27,17 @@ func TestFetchPullRequest(t *testing.T) {
 					"total_count": 4,
 				},
 			}), nil
+		case "/repos/octo/repo/issues/2/comments":
+			return mustJSONResponse(t, http.StatusOK, []map[string]any{
+				{
+					"id":         1101,
+					"body":       "top-level PR conversation comment",
+					"html_url":   "https://github.com/octo/repo/pull/2#issuecomment-1101",
+					"created_at": "2026-01-03T00:30:00Z",
+					"updated_at": "2026-01-03T00:30:00Z",
+					"user":       map[string]any{"login": "issue-commenter"},
+				},
+			}), nil
 		case "/repos/octo/repo/pulls/2":
 			return mustJSONResponse(t, http.StatusOK, map[string]any{
 				"number":          2,
@@ -113,10 +124,13 @@ func TestFetchPullRequest(t *testing.T) {
 	if got.Reactions.Total != 4 {
 		t.Fatalf("top reactions total = %d, want 4", got.Reactions.Total)
 	}
-	if len(got.Thread) != 1 {
-		t.Fatalf("thread len = %d, want 1 (orphan review comment)", len(got.Thread))
+	if len(got.Thread) != 2 {
+		t.Fatalf("thread len = %d, want 2 (issue comment + orphan review comment)", len(got.Thread))
 	}
-	if got.Thread[0].Body != "orphan inline comment" {
-		t.Fatalf("orphan thread body = %q, want %q", got.Thread[0].Body, "orphan inline comment")
+	if got.Thread[0].Body != "top-level PR conversation comment" {
+		t.Fatalf("first thread body = %q, want %q", got.Thread[0].Body, "top-level PR conversation comment")
+	}
+	if got.Thread[1].Body != "orphan inline comment" {
+		t.Fatalf("second thread body = %q, want %q", got.Thread[1].Body, "orphan inline comment")
 	}
 }

@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/johnqtcg/issue2md/internal/config"
 	gh "github.com/johnqtcg/issue2md/internal/github"
+	"github.com/johnqtcg/issue2md/internal/parser"
 )
 
 func TestAppRunSingleSuccess(t *testing.T) {
@@ -144,5 +146,96 @@ func TestAppRunSingleExitCodeMapping(t *testing.T) {
 				t.Fatalf("Run exit code = %d, want %d", code, tc.wantCode)
 			}
 		})
+	}
+}
+
+func TestAppRunSingleInvalidGitHubURLReturnsInvalidArguments(t *testing.T) {
+	t.Parallel()
+
+	url := "https://invalid.example.com/octo/repo/issues/1"
+	loader := &fakeLoader{
+		cfg: config.Config{
+			Positional: []string{url},
+		},
+	}
+	parserMock := &fakeParser{
+		refByURL: map[string]gh.ResourceRef{},
+		errByURL: map[string]error{
+			url: fmt.Errorf("validate host: %w", parser.ErrInvalidGitHubURL),
+		},
+	}
+	fetcher := &fakeFetcher{dataByURL: map[string]gh.IssueData{}, errByURL: map[string]error{}}
+	renderer := &fakeRenderer{out: []byte("# markdown"), errByTitle: map[string]error{}}
+	writer := &fakeOutputWriter{path: "out.md", errByURL: map[string]error{}}
+
+	app := NewApp(AppDeps{
+		Loader:          loader,
+		Parser:          parserMock,
+		FetcherFactory:  &fakeFetcherFactory{fetcher: fetcher},
+		RendererFactory: &fakeRendererFactory{renderer: renderer},
+		Writer:          writer,
+		InputReader:     &fakeInputReader{},
+		Stdout:          new(bytes.Buffer),
+		Stderr:          new(bytes.Buffer),
+	})
+
+	code := app.Run(context.Background(), []string{url})
+	if code != ExitInvalidArguments {
+		t.Fatalf("Run exit code = %d, want %d", code, ExitInvalidArguments)
+	}
+}
+
+func TestAppRunSingleStdoutModeKeepsStdoutPureMarkdown(t *testing.T) {
+	t.Parallel()
+
+	url := "https://github.com/octo/repo/issues/3"
+	ref := gh.ResourceRef{Owner: "octo", Repo: "repo", Number: 3, Type: gh.ResourceIssue, URL: url}
+	data := gh.IssueData{
+		Meta: gh.Metadata{
+			Type:      gh.ResourceIssue,
+			Title:     "issue title",
+			Number:    3,
+			State:     "open",
+			Author:    "alice",
+			CreatedAt: "2026-01-01T00:00:00Z",
+			UpdatedAt: "2026-01-01T00:00:00Z",
+			URL:       url,
+		},
+		Description: "desc",
+	}
+
+	loader := &fakeLoader{
+		cfg: config.Config{
+			Positional:      []string{url},
+			Stdout:          true,
+			IncludeComments: true,
+		},
+	}
+	parser := &fakeParser{refByURL: map[string]gh.ResourceRef{url: ref}, errByURL: map[string]error{}}
+	fetcher := &fakeFetcher{dataByURL: map[string]gh.IssueData{url: data}, errByURL: map[string]error{}}
+	renderer := &fakeRenderer{out: []byte("# markdown\n"), errByTitle: map[string]error{}}
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+
+	app := NewApp(AppDeps{
+		Loader:          loader,
+		Parser:          parser,
+		FetcherFactory:  &fakeFetcherFactory{fetcher: fetcher},
+		RendererFactory: &fakeRendererFactory{renderer: renderer},
+		Writer:          NewOutputWriter(stdout),
+		InputReader:     &fakeInputReader{},
+		Stdout:          stdout,
+		Stderr:          stderr,
+	})
+
+	code := app.Run(context.Background(), []string{"--stdout", url})
+	if code != ExitOK {
+		t.Fatalf("Run exit code = %d, want %d", code, ExitOK)
+	}
+	if stdout.String() != "# markdown\n" {
+		t.Fatalf("stdout = %q, want pure markdown output", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "OK url="+url) {
+		t.Fatalf("stderr = %q, want status line", stderr.String())
 	}
 }
