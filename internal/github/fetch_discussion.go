@@ -225,34 +225,34 @@ type discussionPayload struct {
 }
 
 type discussionNode struct {
-	Number    int    `json:"number"`
+	Answer *struct {
+		Author *struct {
+			Login string `json:"login"`
+		} `json:"author"`
+		ID string `json:"id"`
+	} `json:"answer"`
+	UpdatedAt string `json:"updatedAt"`
 	Title     string `json:"title"`
 	Body      string `json:"body"`
 	URL       string `json:"url"`
 	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
-	Closed    bool   `json:"closed"`
 	Author    struct {
 		Login string `json:"login"`
 	} `json:"author"`
 	Category struct {
 		Name string `json:"name"`
 	} `json:"category"`
-	IsAnswered bool `json:"isAnswered"`
-	Answer     *struct {
-		ID     string `json:"id"`
-		Author *struct {
-			Login string `json:"login"`
-		} `json:"author"`
-	} `json:"answer"`
-	Reactions graphQLReactionSummary `json:"reactions"`
-	Comments  struct {
-		Nodes    []discussionCommentPayload `json:"nodes"`
+	Comments struct {
 		PageInfo struct {
-			HasNextPage bool   `json:"hasNextPage"`
 			EndCursor   string `json:"endCursor"`
+			HasNextPage bool   `json:"hasNextPage"`
 		} `json:"pageInfo"`
+		Nodes []discussionCommentPayload `json:"nodes"`
 	} `json:"comments"`
+	Reactions  graphQLReactionSummary `json:"reactions"`
+	Number     int                    `json:"number"`
+	Closed     bool                   `json:"closed"`
+	IsAnswered bool                   `json:"isAnswered"`
 }
 
 type discussionCommentPayload struct {
@@ -264,24 +264,24 @@ type discussionCommentPayload struct {
 	Author    struct {
 		Login string `json:"login"`
 	} `json:"author"`
-	Reactions graphQLReactionSummary `json:"reactions"`
-	Replies   struct {
-		Nodes    []discussionReplyPayload `json:"nodes"`
+	Replies struct {
 		PageInfo struct {
-			HasNextPage bool   `json:"hasNextPage"`
 			EndCursor   string `json:"endCursor"`
+			HasNextPage bool   `json:"hasNextPage"`
 		} `json:"pageInfo"`
+		Nodes []discussionReplyPayload `json:"nodes"`
 	} `json:"replies"`
+	Reactions graphQLReactionSummary `json:"reactions"`
 }
 
 type discussionRepliesPayload struct {
 	Node *struct {
 		Replies struct {
-			Nodes    []discussionReplyPayload `json:"nodes"`
 			PageInfo struct {
-				HasNextPage bool   `json:"hasNextPage"`
 				EndCursor   string `json:"endCursor"`
+				HasNextPage bool   `json:"hasNextPage"`
 			} `json:"pageInfo"`
+			Nodes []discussionReplyPayload `json:"nodes"`
 		} `json:"replies"`
 	} `json:"node"`
 }

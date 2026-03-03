@@ -101,8 +101,8 @@ func TestFetcherDispatchByResourceType(t *testing.T) {
 
 	tcs := []struct {
 		name string
-		ref  ResourceRef
 		want ResourceType
+		ref  ResourceRef
 	}{
 		{name: "issue", ref: ResourceRef{Owner: "octo", Repo: "repo", Number: 1, Type: ResourceIssue}, want: ResourceIssue},
 		{name: "pull request", ref: ResourceRef{Owner: "octo", Repo: "repo", Number: 2, Type: ResourcePullRequest}, want: ResourcePullRequest},

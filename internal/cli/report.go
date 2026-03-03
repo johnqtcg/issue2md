@@ -28,10 +28,10 @@ type ItemResult struct {
 
 // RunSummary stores overall run stats and per-item outcomes.
 type RunSummary struct {
+	Items     []ItemResult
 	Total     int
 	Succeeded int
 	Failed    int
-	Items     []ItemResult
 }
 
 // BuildSummary computes aggregate counters from item results.

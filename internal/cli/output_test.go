@@ -16,8 +16,8 @@ func TestDefaultFileName(t *testing.T) {
 
 	tcs := []struct {
 		name string
-		ref  gh.ResourceRef
 		want string
+		ref  gh.ResourceRef
 	}{
 		{
 			name: "issue",
@@ -165,10 +165,10 @@ func TestOutputWriterCreatedDirectoryPermission(t *testing.T) {
 	t.Parallel()
 
 	tcs := []struct {
-		name      string
-		cfg       config.Config
-		mode      Mode
 		wantDirFn func(cfg config.Config) string
+		name      string
+		mode      Mode
+		cfg       config.Config
 	}{
 		{
 			name: "single mode explicit file",

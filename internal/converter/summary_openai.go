@@ -23,11 +23,11 @@ const (
 // Summary holds the normalized AI summary payload for markdown rendering.
 type Summary struct {
 	Summary      string
-	KeyDecisions []string
-	ActionItems  []string
 	Language     string
 	Status       string
 	Reason       string
+	KeyDecisions []string
+	ActionItems  []string
 }
 
 // Summarizer defines the AI summary capability used by renderer.
@@ -37,10 +37,10 @@ type Summarizer interface {
 
 // OpenAISummarizerConfig configures OpenAI Responses API integration.
 type OpenAISummarizerConfig struct {
+	HTTPClient *http.Client
 	APIKey     string
 	BaseURL    string
 	Model      string
-	HTTPClient *http.Client
 }
 
 type openAISummarizer struct {
@@ -61,9 +61,9 @@ type openAIResponseEnvelope struct {
 
 type openAISummaryPayload struct {
 	Summary      string   `json:"summary"`
+	Language     string   `json:"language"`
 	KeyDecisions []string `json:"key_decisions"`
 	ActionItems  []string `json:"action_items"`
-	Language     string   `json:"language"`
 }
 
 // NewOpenAISummarizer creates a Summarizer backed by OpenAI Responses API.

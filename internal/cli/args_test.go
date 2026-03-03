@@ -10,9 +10,9 @@ func TestValidateArgs(t *testing.T) {
 	t.Parallel()
 
 	tcs := []struct {
+		want    Args
 		name    string
 		cfg     config.Config
-		want    Args
 		wantErr bool
 	}{
 		{

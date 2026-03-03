@@ -13,8 +13,8 @@ func TestIsRetryableError(t *testing.T) {
 	t.Parallel()
 
 	tcs := []struct {
-		name string
 		err  error
+		name string
 		want bool
 	}{
 		{name: "status 429", err: &statusError{StatusCode: 429, Err: errors.New("rate limited")}, want: true},

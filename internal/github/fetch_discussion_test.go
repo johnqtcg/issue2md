@@ -20,8 +20,8 @@ func TestFetchDiscussion(t *testing.T) {
 		}
 
 		var req struct {
-			Query     string         `json:"query"`
 			Variables map[string]any `json:"variables"`
+			Query     string         `json:"query"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Fatalf("decode graphql request: %v", err)
@@ -256,8 +256,8 @@ func TestFetchDiscussionSkipsCommentPaginationWhenCommentsDisabled(t *testing.T)
 		}
 
 		var req struct {
-			Query     string         `json:"query"`
 			Variables map[string]any `json:"variables"`
+			Query     string         `json:"query"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Fatalf("decode graphql request: %v", err)

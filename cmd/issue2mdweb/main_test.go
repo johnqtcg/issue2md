@@ -275,13 +275,13 @@ func TestNewWebHandlerConvertStatusMapping(t *testing.T) {
 	}
 
 	tcs := []struct {
+		parserErr   error
+		fetchErr    error
+		renderErr   error
 		name        string
 		method      string
 		body        string
 		contentType string
-		parserErr   error
-		fetchErr    error
-		renderErr   error
 		wantStatus  int
 	}{
 		{name: "method not allowed", method: http.MethodGet, wantStatus: http.StatusMethodNotAllowed},
@@ -418,8 +418,8 @@ func TestResolveWebAddr(t *testing.T) {
 }
 
 type fakeWebParser struct {
-	ref gh.ResourceRef
 	err error
+	ref gh.ResourceRef
 }
 
 func (f *fakeWebParser) Parse(rawURL string) (gh.ResourceRef, error) {
@@ -431,8 +431,8 @@ func (f *fakeWebParser) Parse(rawURL string) (gh.ResourceRef, error) {
 }
 
 type fakeWebFetcher struct {
-	data gh.IssueData
 	err  error
+	data gh.IssueData
 }
 
 func (f *fakeWebFetcher) Fetch(ctx context.Context, ref gh.ResourceRef, opts gh.FetchOptions) (gh.IssueData, error) {
@@ -446,8 +446,8 @@ func (f *fakeWebFetcher) Fetch(ctx context.Context, ref gh.ResourceRef, opts gh.
 }
 
 type fakeWebRenderer struct {
-	content []byte
 	err     error
+	content []byte
 }
 
 func (f *fakeWebRenderer) Render(ctx context.Context, data gh.IssueData, opts converter.RenderOptions) ([]byte, error) {

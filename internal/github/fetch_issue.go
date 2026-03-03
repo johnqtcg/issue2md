@@ -59,11 +59,11 @@ type issueTimelinePayload struct {
 	Repository struct {
 		Issue *struct {
 			TimelineItems struct {
-				Nodes    []issueTimelineNode `json:"nodes"`
 				PageInfo struct {
-					HasNextPage bool   `json:"hasNextPage"`
 					EndCursor   string `json:"endCursor"`
+					HasNextPage bool   `json:"hasNextPage"`
 				} `json:"pageInfo"`
+				Nodes []issueTimelineNode `json:"nodes"`
 			} `json:"timelineItems"`
 		} `json:"issue"`
 	} `json:"repository"`

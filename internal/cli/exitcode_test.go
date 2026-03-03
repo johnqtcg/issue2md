@@ -13,11 +13,11 @@ func TestResolveExitCode(t *testing.T) {
 	t.Parallel()
 
 	tcs := []struct {
-		name     string
 		err      error
-		isBatch  bool
+		name     string
 		failed   int
 		wantCode int
+		isBatch  bool
 	}{
 		{name: "success", err: nil, isBatch: false, failed: 0, wantCode: ExitOK},
 		{name: "validation error", err: config.NewValidationError("url", "bad"), isBatch: false, failed: 0, wantCode: ExitInvalidArguments},

@@ -6,9 +6,9 @@ import (
 )
 
 type fetcher struct {
-	cfg  Config
 	rest *restClient
 	gql  *graphQLClient
+	cfg  Config
 }
 
 func (f *fetcher) Fetch(ctx context.Context, ref ResourceRef, opts FetchOptions) (IssueData, error) {

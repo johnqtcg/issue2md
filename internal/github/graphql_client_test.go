@@ -108,8 +108,8 @@ func TestGraphQLQueryPaginatedPassesCursor(t *testing.T) {
 	err := client.QueryPaginated(context.Background(), "query P { pageInfo { hasNextPage endCursor } }", map[string]any{}, func(page json.RawMessage) (bool, string, error) {
 		var out struct {
 			PageInfo struct {
-				HasNextPage bool   `json:"hasNextPage"`
 				EndCursor   string `json:"endCursor"`
+				HasNextPage bool   `json:"hasNextPage"`
 			} `json:"pageInfo"`
 		}
 		if err := json.Unmarshal(page, &out); err != nil {
@@ -168,8 +168,8 @@ func TestGraphQLQueryPaginatedCursorStalled(t *testing.T) {
 	err := client.QueryPaginated(context.Background(), "query P { pageInfo { hasNextPage endCursor } }", nil, func(page json.RawMessage) (bool, string, error) {
 		var out struct {
 			PageInfo struct {
-				HasNextPage bool   `json:"hasNextPage"`
 				EndCursor   string `json:"endCursor"`
+				HasNextPage bool   `json:"hasNextPage"`
 			} `json:"pageInfo"`
 		}
 		if err := json.Unmarshal(page, &out); err != nil {

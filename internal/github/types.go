@@ -16,9 +16,9 @@ const (
 type ResourceRef struct {
 	Owner  string
 	Repo   string
-	Number int
 	Type   ResourceType
 	URL    string
+	Number int
 }
 
 // ReactionSummary captures aggregate reaction counts on a GitHub entity.
@@ -41,24 +41,22 @@ type Label struct {
 
 // Metadata stores top-level fields used in front matter and metadata sections.
 type Metadata struct {
-	Type      ResourceType
-	Title     string
-	Number    int
-	State     string
-	Author    string
-	CreatedAt string
-	UpdatedAt string
-	URL       string
-	Labels    []Label
-
-	Merged      bool
-	MergedAt    string
-	ReviewCount int
-
 	Category             string
-	IsAnswered           bool
-	AcceptedAnswerID     string
+	MergedAt             string
 	AcceptedAnswerAuthor string
+	State                string
+	Author               string
+	CreatedAt            string
+	Title                string
+	AcceptedAnswerID     string
+	Type                 ResourceType
+	URL                  string
+	UpdatedAt            string
+	Labels               []Label
+	ReviewCount          int
+	Number               int
+	IsAnswered           bool
+	Merged               bool
 }
 
 // TimelineEvent represents one normalized timeline event.
@@ -77,8 +75,8 @@ type CommentNode struct {
 	CreatedAt string
 	UpdatedAt string
 	URL       string
-	Reactions ReactionSummary
 	Replies   []CommentNode
+	Reactions ReactionSummary
 }
 
 // ReviewData stores review summary data and review-thread comments.
@@ -88,17 +86,16 @@ type ReviewData struct {
 	Author    string
 	Body      string
 	CreatedAt string
-	Reactions ReactionSummary
 	Comments  []CommentNode
+	Reactions ReactionSummary
 }
 
 // IssueData is the normalized transport payload consumed by other layers.
 type IssueData struct {
-	Meta        Metadata
 	Description string
+	Timeline    []TimelineEvent
+	Reviews     []ReviewData
+	Thread      []CommentNode
+	Meta        Metadata
 	Reactions   ReactionSummary
-
-	Timeline []TimelineEvent
-	Reviews  []ReviewData
-	Thread   []CommentNode
 }

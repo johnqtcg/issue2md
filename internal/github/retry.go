@@ -13,8 +13,8 @@ import (
 type sleepFunc func(ctx context.Context, d time.Duration) error
 
 type statusError struct {
-	StatusCode int
 	Err        error
+	StatusCode int
 }
 
 func (e *statusError) Error() string {

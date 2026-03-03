@@ -7,8 +7,8 @@ import (
 )
 
 type fakeRunner struct {
-	code    int
 	gotArgs []string
+	code    int
 }
 
 func (f *fakeRunner) Run(_ context.Context, args []string) int {

@@ -10,8 +10,8 @@ func TestIsAuthError(t *testing.T) {
 	t.Parallel()
 
 	tcs := []struct {
-		name string
 		err  error
+		name string
 		want bool
 	}{
 		{name: "401 is auth", err: &statusError{StatusCode: http.StatusUnauthorized, Err: errors.New("bad credentials")}, want: true},

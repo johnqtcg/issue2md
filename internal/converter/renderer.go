@@ -10,9 +10,9 @@ import (
 
 // RenderOptions controls markdown rendering behavior.
 type RenderOptions struct {
+	Lang            string
 	IncludeComments bool
 	IncludeSummary  bool
-	Lang            string
 }
 
 // Renderer converts normalized GitHub data into markdown output.

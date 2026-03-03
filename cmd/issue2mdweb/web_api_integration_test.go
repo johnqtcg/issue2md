@@ -44,13 +44,13 @@ func TestWebAPIIntegrationContract(t *testing.T) {
 	})
 
 	tcs := []struct {
+		headers    map[string]string
 		name       string
 		method     string
 		path       string
 		body       string
-		headers    map[string]string
-		wantStatus int
 		wantInBody string
+		wantStatus int
 	}{
 		{
 			name:       "index ok",

@@ -21,8 +21,8 @@ type graphQLClient struct {
 }
 
 type graphQLRequest struct {
-	Query     string         `json:"query"`
 	Variables map[string]any `json:"variables,omitempty"`
+	Query     string         `json:"query"`
 }
 
 type graphQLErrorMessage struct {

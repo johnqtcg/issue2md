@@ -10,9 +10,9 @@ import (
 )
 
 type fakeLoader struct {
-	cfg     config.Config
 	err     error
 	gotArgs []string
+	cfg     config.Config
 }
 
 func (f *fakeLoader) Load(args []string) (config.Config, error) {
@@ -121,9 +121,9 @@ func (f *fakeOutputWriter) Write(cfg config.Config, mode Mode, ref gh.ResourceRe
 }
 
 type fakeInputReader struct {
-	lines   []string
 	err     error
 	gotPath string
+	lines   []string
 }
 
 func (f *fakeInputReader) Read(path string, handle func(line string) error) error {

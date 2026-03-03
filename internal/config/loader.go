@@ -10,16 +10,16 @@ import (
 type Config struct {
 	OutputPath      string
 	Format          string
-	IncludeComments bool
-	Stdout          bool
-	Force           bool
 	InputFile       string
-	Positional      []string
 	Token           string
 	SummaryLang     string
 	OpenAIAPIKey    string
 	OpenAIBaseURL   string
 	OpenAIModel     string
+	Positional      []string
+	IncludeComments bool
+	Stdout          bool
+	Force           bool
 }
 
 // Loader loads configuration from CLI args and environment variables.

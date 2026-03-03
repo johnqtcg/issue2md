@@ -33,12 +33,12 @@ type Fetcher interface {
 
 // Config configures the GitHub fetcher client.
 type Config struct {
-	Token          string
 	HTTPClient     *http.Client
-	MaxRetries     int
-	InitialBackoff time.Duration
+	Token          string
 	RESTBaseURL    string
 	GraphQLURL     string
+	MaxRetries     int
+	InitialBackoff time.Duration
 }
 
 // WithDefaults fills missing optional values with package defaults.

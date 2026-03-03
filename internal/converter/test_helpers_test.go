@@ -158,9 +158,9 @@ func fixedSummary() Summary {
 }
 
 type stubSummarizer struct {
-	summary  Summary
 	err      error
 	lastLang string
+	summary  Summary
 }
 
 func (s *stubSummarizer) Summarize(_ context.Context, _ gh.IssueData, lang string) (Summary, error) {

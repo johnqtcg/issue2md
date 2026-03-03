@@ -89,9 +89,9 @@ func TestAppRunSingleExitCodeMapping(t *testing.T) {
 	baseCfg := config.Config{Positional: []string{url}, IncludeComments: true}
 
 	tcs := []struct {
-		name     string
 		fetchErr error
 		writeErr error
+		name     string
 		wantCode int
 	}{
 		{name: "auth error", fetchErr: errors.New("http status 401: bad credentials"), wantCode: ExitAuth},
