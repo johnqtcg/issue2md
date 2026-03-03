@@ -63,6 +63,12 @@ func TestIssue2mdWebE2EJourney(t *testing.T) {
 
 	baseURL := "http://" + addr
 	client := &http.Client{Timeout: 3 * time.Second}
+	noRedirectClient := &http.Client{
+		Timeout: 3 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
 
 	if err := waitForWebReady(ctx, client, baseURL, waitCh); err != nil {
 		t.Fatalf("wait for web ready: %v\nstdout=%s\nstderr=%s", err, stdout.String(), stderr.String())
@@ -74,8 +80,10 @@ func TestIssue2mdWebE2EJourney(t *testing.T) {
 		method     string
 		path       string
 		body       string
+		location   string
 		wantInBody string
 		wantStatus int
+		noRedirect bool
 	}{
 		{
 			name:       "index page",
@@ -89,7 +97,8 @@ func TestIssue2mdWebE2EJourney(t *testing.T) {
 			method:     http.MethodGet,
 			path:       "/swagger",
 			wantStatus: http.StatusTemporaryRedirect,
-			wantInBody: "/swagger/index.html",
+			location:   "/swagger/index.html",
+			noRedirect: true,
 		},
 		{
 			name:       "swagger index",
@@ -130,7 +139,12 @@ func TestIssue2mdWebE2EJourney(t *testing.T) {
 				req.Header.Set(k, v)
 			}
 
-			resp, err := client.Do(req)
+			reqClient := client
+			if tc.noRedirect {
+				reqClient = noRedirectClient
+			}
+
+			resp, err := reqClient.Do(req)
 			if err != nil {
 				t.Fatalf("do request: %v", err)
 			}
@@ -145,6 +159,11 @@ func TestIssue2mdWebE2EJourney(t *testing.T) {
 
 			if resp.StatusCode != tc.wantStatus {
 				t.Fatalf("status=%d want=%d body=%q", resp.StatusCode, tc.wantStatus, string(body))
+			}
+			if tc.location != "" {
+				if got := resp.Header.Get("Location"); got != tc.location {
+					t.Fatalf("location=%q want=%q", got, tc.location)
+				}
 			}
 			if tc.wantInBody != "" && !strings.Contains(string(body), tc.wantInBody) {
 				t.Fatalf("body=%q should contain %q", string(body), tc.wantInBody)
