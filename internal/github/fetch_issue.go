@@ -9,6 +9,8 @@ import (
 	goGithub "github.com/google/go-github/v72/github"
 )
 
+const issueTimelineEventAssigned = "assigned"
+
 func (f *fetcher) fetchIssue(ctx context.Context, ref ResourceRef, opts FetchOptions) (IssueData, error) {
 	issue, err := f.rest.getIssue(ctx, ref.Owner, ref.Repo, ref.Number)
 	if err != nil {
@@ -180,9 +182,9 @@ func mapIssueTimelineNode(node issueTimelineNode) (eventType, details string, ok
 		return "labeled", node.Label.Name, true
 	case "AssignedEvent":
 		if node.Assignee.Login != "" {
-			return "assigned", node.Assignee.Login, true
+			return issueTimelineEventAssigned, node.Assignee.Login, true
 		}
-		return "assigned", node.Actor.Login, true
+		return issueTimelineEventAssigned, node.Actor.Login, true
 	case "MilestonedEvent":
 		if node.MilestoneTitle != "" {
 			return "milestoned", node.MilestoneTitle, true
