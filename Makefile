@@ -31,17 +31,17 @@ check-tools: ## Check required and optional tools
 	@command -v $(SWAG) >/dev/null || echo "optional tool missing: $(SWAG) (required for make swagger)"
 
 fmt: ## Format all tracked Go files
-	@files=$$(git ls-files '*.go'); \
+	@files=$$(git ls-files '*.go' | while IFS= read -r f; do [ -f "$$f" ] && printf "%s " "$$f"; done); \
 	if [ -n "$$files" ]; then gofmt -w $$files; else echo "no tracked Go files"; fi
 
 test: ## Run all tests
 	GOCACHE=$(GOCACHE_DIR) $(GO) test ./...
 
 test-api-integration: ## Run opt-in API integration tests for web endpoints
-	GOCACHE=$(GOCACHE_DIR) ISSUE2MD_API_INTEGRATION=1 $(GO) test ./cmd/issue2mdweb -run Integration -v
+	GOCACHE=$(GOCACHE_DIR) ISSUE2MD_API_INTEGRATION=1 $(GO) test ./tests/integration/http -run Integration -v
 
 test-e2e-web: ## Run opt-in web E2E journey tests
-	GOCACHE=$(GOCACHE_DIR) ISSUE2MD_E2E=1 ISSUE2MD_WEB_ADDR=127.0.0.1:18080 $(GO) test ./cmd/issue2mdweb -run E2E -v
+	GOCACHE=$(GOCACHE_DIR) ISSUE2MD_E2E=1 ISSUE2MD_WEB_ADDR=127.0.0.1:18080 $(GO) test ./tests/e2e/web -run E2E -v
 
 cover: ## Run tests with coverage report
 	GOCACHE=$(GOCACHE_DIR) $(GO) test ./... -coverprofile=$(COVER_FILE)

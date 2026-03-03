@@ -1,4 +1,4 @@
-package main
+package integrationhttp_test
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"github.com/johnqtcg/issue2md/internal/converter"
 	gh "github.com/johnqtcg/issue2md/internal/github"
 	"github.com/johnqtcg/issue2md/internal/parser"
+	"github.com/johnqtcg/issue2md/internal/webapp"
 )
 
 const apiIntegrationGateEnv = "ISSUE2MD_API_INTEGRATION"
@@ -30,17 +31,17 @@ func TestWebAPIIntegrationContract(t *testing.T) {
 		t.Fatalf("write openapi fixture: %v", err)
 	}
 
-	tmpl, err := loadTemplate()
+	tmpl, err := webapp.LoadTemplate()
 	if err != nil {
 		t.Fatalf("load template: %v", err)
 	}
 
-	handler := newWebHandler(webDeps{
-		parser:          parser.New(),
-		fetcher:         integrationWebFetcher{},
-		renderer:        converter.NewRenderer(nil),
-		tmpl:            tmpl,
-		openAPISpecPath: specPath,
+	handler := webapp.NewHandler(webapp.Deps{
+		Parser:          parser.New(),
+		Fetcher:         integrationWebFetcher{},
+		Renderer:        converter.NewRenderer(nil),
+		Template:        tmpl,
+		OpenAPISpecPath: specPath,
 	})
 
 	tcs := []struct {

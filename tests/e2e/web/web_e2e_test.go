@@ -1,4 +1,4 @@
-package main
+package e2eweb_test
 
 import (
 	"bytes"
@@ -232,7 +232,7 @@ func stopProcess(t *testing.T, cmd *exec.Cmd, waitCh <-chan error) {
 func repoRootDir(t *testing.T) string {
 	t.Helper()
 
-	root, err := filepath.Abs(filepath.Join("..", ".."))
+	root, err := filepath.Abs(filepath.Join("..", "..", ".."))
 	if err != nil {
 		t.Fatalf("resolve repo root: %v", err)
 	}

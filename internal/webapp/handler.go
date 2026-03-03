@@ -1,0 +1,274 @@
+package webapp
+
+import (
+	"errors"
+	"html/template"
+	"io/fs"
+	"net/http"
+	"os"
+	"strings"
+
+	"github.com/johnqtcg/issue2md/internal/converter"
+	gh "github.com/johnqtcg/issue2md/internal/github"
+	"github.com/johnqtcg/issue2md/internal/parser"
+	webassets "github.com/johnqtcg/issue2md/web"
+)
+
+// DefaultOpenAPISpecPath is the default OpenAPI JSON path used by the web handler.
+const DefaultOpenAPISpecPath = "docs/swagger.json"
+
+// Deps defines dependencies for building the web HTTP handler.
+type Deps struct {
+	Parser          parser.URLParser
+	Fetcher         gh.Fetcher
+	Renderer        converter.Renderer
+	Template        *template.Template
+	OpenAPISpecPath string
+}
+
+type webHandler struct {
+	parser          parser.URLParser
+	fetcher         gh.Fetcher
+	renderer        converter.Renderer
+	tmpl            *template.Template
+	openAPISpecPath string
+}
+
+// NewHandler constructs the web routes handler.
+func NewHandler(deps Deps) http.Handler {
+	tmpl := deps.Template
+	if tmpl == nil {
+		tmpl = template.Must(template.New("index").Parse(DefaultIndexTemplate))
+	}
+
+	openAPISpecPath := deps.OpenAPISpecPath
+	if openAPISpecPath == "" {
+		openAPISpecPath = DefaultOpenAPISpecPath
+	}
+
+	handler := &webHandler{
+		parser:          deps.Parser,
+		fetcher:         deps.Fetcher,
+		renderer:        deps.Renderer,
+		tmpl:            tmpl,
+		openAPISpecPath: openAPISpecPath,
+	}
+
+	mux := http.NewServeMux()
+	staticFS := mustSubFS(webassets.FS, "static")
+	swaggerUIFS := mustSubFS(webassets.FS, "swaggerui")
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
+	mux.Handle("/swagger/assets/", http.StripPrefix("/swagger/assets/", http.FileServer(http.FS(swaggerUIFS))))
+	mux.HandleFunc("/", handler.handleIndex)
+	mux.HandleFunc("/convert", handler.handleConvert)
+	mux.HandleFunc("/openapi.json", handler.handleOpenAPISpec)
+	mux.HandleFunc("/swagger", handler.handleSwaggerRoot)
+	mux.HandleFunc("/swagger/index.html", handler.handleSwaggerUI)
+
+	return mux
+}
+
+func (h *webHandler) handleIndex(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := h.tmpl.Execute(w, map[string]any{
+		"Markdown": "",
+		"URL":      "",
+		"Error":    "",
+	}); err != nil {
+		http.Error(w, "render template failed", http.StatusInternalServerError)
+	}
+}
+
+// handleConvert converts a GitHub resource URL to markdown.
+// @Summary Convert GitHub URL to Markdown
+// @Description Fetch one GitHub issue, pull request, or discussion and render it as markdown.
+// @Tags convert
+// @Accept application/x-www-form-urlencoded
+// @Produce plain
+// @Param url formData string true "GitHub issue/pull/discussion URL"
+// @Success 200 {string} string "markdown body"
+// @Failure 400 {string} string "invalid request"
+// @Failure 401 {string} string "unauthorized"
+// @Failure 403 {string} string "forbidden"
+// @Failure 404 {string} string "resource not found"
+// @Failure 429 {string} string "rate limited"
+// @Failure 502 {string} string "upstream failure"
+// @Failure 500 {string} string "render failed"
+// @Router /convert [post]
+func (h *webHandler) handleConvert(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "invalid form", http.StatusBadRequest)
+		return
+	}
+
+	rawURL := r.FormValue("url")
+	if rawURL == "" {
+		http.Error(w, "missing url", http.StatusBadRequest)
+		return
+	}
+
+	ref, err := h.parser.Parse(rawURL)
+	if err != nil {
+		http.Error(w, "invalid github url", http.StatusBadRequest)
+		return
+	}
+
+	data, err := h.fetcher.Fetch(r.Context(), ref, gh.FetchOptions{IncludeComments: true})
+	if err != nil {
+		http.Error(w, "fetch github resource failed", fetchHTTPStatusFromError(err))
+		return
+	}
+
+	markdown, err := h.renderer.Render(r.Context(), data, converter.RenderOptions{
+		IncludeComments: true,
+		IncludeSummary:  true,
+	})
+	if err != nil {
+		http.Error(w, "render markdown failed", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	if _, err := w.Write(markdown); err != nil {
+		http.Error(w, "write response failed", http.StatusInternalServerError)
+	}
+}
+
+// handleOpenAPISpec serves generated OpenAPI JSON.
+// @Summary Get OpenAPI specification
+// @Description Returns generated OpenAPI JSON. Run `make swagger` before calling this endpoint.
+// @Tags docs
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 503 {string} string "spec unavailable"
+// @Failure 500 {string} string "read failed"
+// @Router /openapi.json [get]
+func (h *webHandler) handleOpenAPISpec(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	spec, err := os.ReadFile(h.openAPISpecPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(w, "openapi spec not generated, run: make swagger", http.StatusServiceUnavailable)
+			return
+		}
+		http.Error(w, "read openapi spec failed", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	if _, err := w.Write(spec); err != nil {
+		http.Error(w, "write response failed", http.StatusInternalServerError)
+	}
+}
+
+func (h *webHandler) handleSwaggerRoot(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	http.Redirect(w, r, "/swagger/index.html", http.StatusTemporaryRedirect)
+}
+
+func (h *webHandler) handleSwaggerUI(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	page, err := fs.ReadFile(webassets.FS, "swaggerui/index.html")
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			http.Error(w, "swagger ui assets not found", http.StatusServiceUnavailable)
+			return
+		}
+		http.Error(w, "read swagger ui index failed", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if _, err := w.Write(page); err != nil {
+		http.Error(w, "write response failed", http.StatusInternalServerError)
+	}
+}
+
+func mustSubFS(root fs.FS, dir string) fs.FS {
+	sub, err := fs.Sub(root, dir)
+	if err != nil {
+		panic("embedded fs missing " + dir)
+	}
+	return sub
+}
+
+func fetchHTTPStatusFromError(err error) int {
+	if err == nil {
+		return http.StatusOK
+	}
+
+	if status, ok := fetchStatusFromClassifiedError(err); ok {
+		return status
+	}
+	if status, ok := fetchStatusFromWrappedStatus(err); ok {
+		return status
+	}
+
+	return http.StatusBadGateway
+}
+
+func fetchStatusFromClassifiedError(err error) (int, bool) {
+	if errors.Is(err, gh.ErrResourceNotFound) {
+		return http.StatusNotFound, true
+	}
+	if gh.IsRateLimitError(err) {
+		return http.StatusTooManyRequests, true
+	}
+	if gh.IsAuthError(err) {
+		return authHTTPStatus(err), true
+	}
+	return 0, false
+}
+
+func authHTTPStatus(err error) int {
+	if status, ok := gh.StatusCode(err); ok {
+		if status == http.StatusUnauthorized || status == http.StatusForbidden {
+			return status
+		}
+	}
+
+	text := strings.ToLower(err.Error())
+	if strings.Contains(text, "status 403") || strings.Contains(text, "forbidden") {
+		return http.StatusForbidden
+	}
+	return http.StatusUnauthorized
+}
+
+func fetchStatusFromWrappedStatus(err error) (int, bool) {
+	status, ok := gh.StatusCode(err)
+	if !ok {
+		return 0, false
+	}
+
+	switch status {
+	case http.StatusNotFound:
+		return http.StatusNotFound, true
+	case http.StatusTooManyRequests:
+		return http.StatusTooManyRequests, true
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return status, true
+	default:
+		if status >= 500 && status <= 599 {
+			return http.StatusBadGateway, true
+		}
+		return 0, false
+	}
+}

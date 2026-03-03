@@ -48,7 +48,15 @@
 │   ├── config                   # flags + env 配置加载
 │   ├── parser                   # GitHub URL 解析与规范化
 │   ├── github                   # REST/GraphQL 抓取、重试、错误分类
-│   └── converter                # Markdown 渲染与 AI Summary
+│   ├── converter                # Markdown 渲染与 AI Summary
+│   └── webapp                   # Web 路由与模板复用逻辑
+├── tests
+│   ├── integration
+│   │   └── http
+│   │       └── web_api_integration_test.go # Web API 集成测试
+│   └── e2e
+│       └── web
+│           └── web_e2e_test.go  # Web 端到端测试
 ├── web
 │   ├── templates
 │   │   └── index.html
@@ -303,7 +311,8 @@ make clean          # 清理 bin 与覆盖率产物
 
 ### CI 工作流（.github/workflows/ci.yml）
 
-- `ci`：在 `push(main)` 与 `pull_request` 触发，执行覆盖率门禁（>=80%）、API 集成测试、lint、build。
+- `ci`：在 `push(main)` 与 `pull_request` 触发，执行覆盖率门禁（>=80%）、lint、build。
+- `api-integration`：在 `push(main)` 与 `pull_request` 触发，执行 Web API 集成测试。
 - `e2e-web`：在 `push(main)` 与定时任务触发（`0 3 * * *`），执行 Web 端到端测试。
 - `govulncheck`：执行依赖漏洞扫描。
 - `fieldalignment`：执行结构体字段对齐检查。

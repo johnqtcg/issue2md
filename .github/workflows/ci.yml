@@ -30,14 +30,27 @@ jobs:
       - name: Test with coverage gate (>=80%)
         run: make cover-check COVER_MIN=80
 
-      - name: API integration tests
-        run: make test-api-integration
-
       - name: Lint
         run: make lint
 
       - name: Build
         run: make build-all
+
+  api-integration:
+    name: API Integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run API integration tests
+        run: make test-api-integration
 
   e2e-web:
     name: Web E2E Journey
