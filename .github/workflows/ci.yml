@@ -30,3 +30,41 @@ jobs:
 
       - name: Build
         run: make build-all
+
+  govulncheck:
+    name: Dependency Vulnerability Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+
+      - name: Run govulncheck
+        run: govulncheck ./...
+
+  fieldalignment:
+    name: Struct Field Alignment Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install fieldalignment
+        run: go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@v0.42.0
+
+      - name: Run fieldalignment
+        run: $(go env GOPATH)/bin/fieldalignment ./...

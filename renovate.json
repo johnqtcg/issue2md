@@ -1,0 +1,33 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:best-practices"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track govulncheck version pin in GitHub Actions workflow",
+      "fileMatch": ["^\\.github/workflows/ci\\.yml$"],
+      "matchStrings": [
+        "go install golang\\.org/x/vuln/cmd/govulncheck@(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "golang.org/x/vuln",
+      "datasourceTemplate": "go"
+    },
+    {
+      "customType": "regex",
+      "description": "Track fieldalignment version pin in GitHub Actions workflow",
+      "fileMatch": ["^\\.github/workflows/ci\\.yml$"],
+      "matchStrings": [
+        "go install golang\\.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "golang.org/x/tools",
+      "datasourceTemplate": "go"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["custom.regex"],
+      "groupName": "go ci analysis tools",
+      "schedule": ["on the first day of the month"]
+    }
+  ]
+}

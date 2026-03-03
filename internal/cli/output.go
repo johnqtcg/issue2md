@@ -49,7 +49,7 @@ func (w *fileOutputWriter) Write(cfg config.Config, mode Mode, ref gh.ResourceRe
 	}
 
 	parentDir := filepath.Dir(targetPath)
-	if err := os.MkdirAll(parentDir, 0o755); err != nil {
+	if err := os.MkdirAll(parentDir, 0o750); err != nil {
 		return "", fmt.Errorf("create output directory %q: %w", parentDir, err)
 	}
 

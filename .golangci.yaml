@@ -25,6 +25,7 @@ linters:
     - prealloc
     - unparam
     - nolintlint
+    - gosec
 
   disable:
     - wsl
@@ -61,6 +62,16 @@ linters:
 
     misspell:
       locale: US
+
+    gosec:
+      includes:
+        - G101 # hardcoded credentials
+        - G201 # SQL string formatting
+        - G301 # permissive directory permissions
+        - G302 # permissive file permissions
+        - G401 # weak cryptographic primitives
+        - G402 # TLS InsecureSkipVerify
+        - G501 # blocklisted imports (e.g., crypto/md5)
 
   exclusions:
     # skip vendor, tmp, and *_test.go files

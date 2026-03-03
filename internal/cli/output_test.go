@@ -160,3 +160,63 @@ func TestOutputWriterForceOverwriteRule(t *testing.T) {
 		t.Fatalf("content = %q, want new", string(content))
 	}
 }
+
+func TestOutputWriterCreatedDirectoryPermission(t *testing.T) {
+	t.Parallel()
+
+	tcs := []struct {
+		name      string
+		cfg       config.Config
+		mode      Mode
+		wantDirFn func(cfg config.Config) string
+	}{
+		{
+			name: "single mode explicit file",
+			cfg: config.Config{
+				OutputPath: filepath.Join(t.TempDir(), "single", "out.md"),
+				Force:      true,
+			},
+			mode: ModeSingle,
+			wantDirFn: func(cfg config.Config) string {
+				return filepath.Dir(cfg.OutputPath)
+			},
+		},
+		{
+			name: "batch mode output directory",
+			cfg: config.Config{
+				OutputPath: filepath.Join(t.TempDir(), "batch"),
+			},
+			mode: ModeBatch,
+			wantDirFn: func(cfg config.Config) string {
+				return cfg.OutputPath
+			},
+		},
+	}
+
+	w := NewOutputWriter(new(bytes.Buffer))
+	ref := gh.ResourceRef{Owner: "octo", Repo: "repo", Type: gh.ResourceIssue, Number: 8}
+
+	for _, tc := range tcs {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			gotPath, err := w.Write(tc.cfg, tc.mode, ref, []byte("content"))
+			if err != nil {
+				t.Fatalf("Write error = %v, want nil", err)
+			}
+			if gotPath == "" {
+				t.Fatalf("Write path = empty, want non-empty")
+			}
+
+			gotDir := tc.wantDirFn(tc.cfg)
+			info, err := os.Stat(gotDir)
+			if err != nil {
+				t.Fatalf("Stat dir error = %v", err)
+			}
+			perm := info.Mode().Perm()
+			// Ensure permissions are not more permissive than 0750.
+			if perm&0o027 != 0 {
+				t.Fatalf("dir perm = %o, want no group-write or any other bits", perm)
+			}
+		})
+	}
+}
