@@ -19,7 +19,7 @@ SWAG_OUTPUT ?= docs
 .PHONY: help check-tools fmt test test-api-integration test-e2e-web cover cover-check lint install-swag swagger swagger-check \
 	build-all build-cli build-web build-issue2md build-issue2mdweb \
 	install-cli install-web \
-	run-cli run-web run-issue2md run-issue2mdweb ci clean web
+	run-cli run-web run-issue2md run-issue2mdweb ci clean web docker-build
 
 help: ## Show available targets
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_.-]+:.*##/ {printf "  %-22s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -73,6 +73,9 @@ build-cli: build-issue2md ## Build CLI binary
 build-web: build-issue2mdweb ## Build web binary
 
 web: build-web ## Build web service binary (compat alias)
+
+docker-build: ## Build Docker image issue2md:latest from root Dockerfile
+	docker build -f Dockerfile -t issue2md:latest .
 
 build-issue2md: ## Build cmd/issue2md
 	@mkdir -p $(BIN_DIR)
