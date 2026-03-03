@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '0 3 * * *'
 
 jobs:
   ci:
@@ -28,11 +30,31 @@ jobs:
       - name: Test with coverage gate (>=80%)
         run: make cover-check COVER_MIN=80
 
+      - name: API integration tests
+        run: make test-api-integration
+
       - name: Lint
         run: make lint
 
       - name: Build
         run: make build-all
+
+  e2e-web:
+    name: Web E2E Journey
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run web E2E tests
+        run: make test-e2e-web
 
   govulncheck:
     name: Dependency Vulnerability Check

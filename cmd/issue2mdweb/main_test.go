@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/johnqtcg/issue2md/internal/converter"
 	gh "github.com/johnqtcg/issue2md/internal/github"
@@ -391,6 +392,115 @@ func TestNewWebHandlerMethodNotAllowedForDocsEndpoints(t *testing.T) {
 				t.Fatalf("status = %d, want 405", rec.Code)
 			}
 		})
+	}
+}
+
+func TestRunWithGracefulShutdownOnContextCancel(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	serveStarted := make(chan struct{})
+	serveDone := make(chan struct{})
+	shutdownCalled := make(chan context.Context, 1)
+	errCh := make(chan error, 1)
+
+	go func() {
+		errCh <- runWithGracefulShutdown(
+			ctx,
+			func() error {
+				close(serveStarted)
+				<-serveDone
+				return http.ErrServerClosed
+			},
+			func(shutdownCtx context.Context) error {
+				shutdownCalled <- shutdownCtx
+				close(serveDone)
+				return nil
+			},
+			2*time.Second,
+		)
+	}()
+
+	<-serveStarted
+	cancel()
+
+	select {
+	case shutdownCtx := <-shutdownCalled:
+		if _, ok := shutdownCtx.Deadline(); !ok {
+			t.Fatal("shutdown context should have deadline")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("shutdown should be called after cancellation")
+	}
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("runWithGracefulShutdown error = %v, want nil", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("runWithGracefulShutdown did not return")
+	}
+}
+
+func TestRunWithGracefulShutdownReturnsServeError(t *testing.T) {
+	t.Parallel()
+
+	err := runWithGracefulShutdown(
+		context.Background(),
+		func() error { return errors.New("boom") },
+		func(context.Context) error { return nil },
+		time.Second,
+	)
+	if err == nil {
+		t.Fatal("runWithGracefulShutdown error = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "serve http: boom") {
+		t.Fatalf("error = %v, want serve error context", err)
+	}
+}
+
+func TestRunWithGracefulShutdownReturnsShutdownError(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	serveStarted := make(chan struct{})
+	serveDone := make(chan struct{})
+	errCh := make(chan error, 1)
+
+	go func() {
+		errCh <- runWithGracefulShutdown(
+			ctx,
+			func() error {
+				close(serveStarted)
+				<-serveDone
+				return http.ErrServerClosed
+			},
+			func(context.Context) error {
+				close(serveDone)
+				return errors.New("shutdown failed")
+			},
+			time.Second,
+		)
+	}()
+
+	<-serveStarted
+	cancel()
+
+	select {
+	case err := <-errCh:
+		if err == nil {
+			t.Fatal("runWithGracefulShutdown error = nil, want error")
+		}
+		if !strings.Contains(err.Error(), "shutdown server: shutdown failed") {
+			t.Fatalf("error = %v, want shutdown error context", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("runWithGracefulShutdown did not return")
 	}
 }
 

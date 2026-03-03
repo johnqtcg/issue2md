@@ -6,11 +6,16 @@ package main
 // @BasePath /
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/johnqtcg/issue2md/internal/config"
 	"github.com/johnqtcg/issue2md/internal/converter"
@@ -18,7 +23,11 @@ import (
 	"github.com/johnqtcg/issue2md/internal/parser"
 )
 
+const defaultShutdownTimeout = 10 * time.Second
+
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
 	cfg, err := config.NewLoader().Load(nil)
 	if err != nil {
 		log.Fatalf("load config: %v", err)
@@ -61,8 +70,50 @@ func main() {
 	if _, err := fmt.Fprintf(os.Stdout, "issue2md web listening on %s\n", server.Addr); err != nil {
 		log.Printf("write startup message: %v", err)
 	}
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("serve http: %v", err)
+	err = runWithGracefulShutdown(ctx, server.ListenAndServe, server.Shutdown, defaultShutdownTimeout)
+	stop()
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+}
+
+func runWithGracefulShutdown(ctx context.Context, serve func() error, shutdown func(context.Context) error, shutdownTimeout time.Duration) error {
+	if serve == nil {
+		return fmt.Errorf("serve function is nil")
+	}
+	if shutdown == nil {
+		return fmt.Errorf("shutdown function is nil")
+	}
+	if shutdownTimeout <= 0 {
+		shutdownTimeout = defaultShutdownTimeout
+	}
+
+	serveErrCh := make(chan error, 1)
+	go func() {
+		serveErrCh <- serve()
+	}()
+
+	select {
+	case err := <-serveErrCh:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("serve http: %w", err)
+		}
+		return nil
+	case <-ctx.Done():
+		log.Printf("shutdown signal received, stopping web server")
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+
+		if err := shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("shutdown server: %w", err)
+		}
+
+		err := <-serveErrCh
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("serve http: %w", err)
+		}
+		return nil
 	}
 }
 

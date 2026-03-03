@@ -101,7 +101,7 @@ run-issue2md: ## Run cmd/issue2md (pass ARGS='...')
 run-issue2mdweb: ## Run cmd/issue2mdweb
 	$(GO) run ./cmd/issue2mdweb
 
-ci: fmt lint test ## Local CI parity checks
+ci: fmt lint test test-api-integration ## Local CI parity checks
 
 clean: ## Remove build and coverage artifacts
 	rm -rf $(BIN_DIR) $(COVER_FILE) $(COVER_HTML)
