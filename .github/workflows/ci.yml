@@ -22,8 +22,8 @@ jobs:
       - name: Install golangci-lint v2
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2
 
-      - name: Test
-        run: make test
+      - name: Test with coverage gate (>=80%)
+        run: make cover-check COVER_MIN=80
 
       - name: Lint
         run: make lint
