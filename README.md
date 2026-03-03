@@ -5,7 +5,7 @@
 本项目使用codex 5.3 coding agent 完成开发，遵循SDD(Spec-Driven Development)，即规范驱动开发工作流实现。
 可参考开源项目: https://github.com/github/spec-kit
 
-- 语言与版本: Go `1.25.4`（见 `go.mod`）
+- 语言与版本: Go `1.25.7`（见 `go.mod`）
 - 核心依赖: `google/go-github/v72`、`oauth2`（见 `go.mod`）
 - 入口程序: `cmd/issue2md`（CLI）、`cmd/issue2mdweb`（Web）
 
@@ -25,8 +25,13 @@
 ```text
 .
 ├── AGENTS.md
+├── .github
+│   └── workflows
+│       └── ci.yml              # CI 工作流（测试/Lint/构建/安全检查）
 ├── constitution.md              # 项目开发宪法
+├── Dockerfile                   # 容器镜像构建定义
 ├── Makefile                     # 项目 Makefile
+├── renovate.json                # 依赖自动更新策略（Renovate）
 ├── go.mod
 ├── go.sum
 ├── cmd                          # 入口程序
@@ -69,7 +74,7 @@
 
 ### 1) 环境准备
 
-- Go: `>= 1.25`（当前仓库为 `1.25.4`）
+- Go: `>= 1.25`（当前仓库为 `1.25.7`）
 - 可选工具:
   - `golangci-lint`（用于 `make lint`）
   - `swag`（用于 `make swagger`，也可先执行 `make install-swag`）
@@ -143,6 +148,7 @@ make web
 
 服务默认监听 `:8080`（见 `cmd/issue2mdweb/main.go`）。
 可通过 `ISSUE2MD_WEB_ADDR` 覆盖监听地址，例如：`ISSUE2MD_WEB_ADDR=127.0.0.1:18080 ./bin/issue2mdweb`。
+服务已支持优雅停机：收到 `SIGINT/SIGTERM` 后会触发 `http.Server.Shutdown`，默认等待最多 `10s` 处理在途请求。
 
 ```bash
 curl -i http://127.0.0.1:8080/
@@ -276,8 +282,8 @@ make help           # 查看所有目标
 make check-tools    # 检查 Go/gofmt，提示可选工具 golangci-lint/swag
 make fmt            # 格式化所有受 Git 跟踪的 .go 文件
 make test           # 运行全部测试
-make test-api-integration # 运行 Web API 集成测试（需 ISSUE2MD_API_INTEGRATION=1）
-make test-e2e-web   # 运行 Web E2E（需 ISSUE2MD_E2E=1）
+make test-api-integration # 运行 Web API 集成测试（target 内已启用 ISSUE2MD_API_INTEGRATION=1）
+make test-e2e-web   # 运行 Web E2E（target 内已启用 ISSUE2MD_E2E=1）
 make cover          # 覆盖率报告（coverage.out）
 make cover-check    # 覆盖率门禁（默认 >= 80，可用 COVER_MIN 调整）
 make lint           # golangci-lint run --config .golangci.yaml ./...
@@ -291,9 +297,16 @@ make install-cli    # 安装 issue2md 到 GOBIN（或 GOPATH/bin）
 make install-web    # 安装 issue2mdweb 到 GOBIN（或 GOPATH/bin）
 make run-cli ARGS="https://github.com/<owner>/<repo>/issues/1"
 make run-web
-make ci             # fmt + lint + test
+make ci             # fmt + lint + test + test-api-integration
 make clean          # 清理 bin 与覆盖率产物
 ```
+
+### CI 工作流（.github/workflows/ci.yml）
+
+- `ci`：在 `push(main)` 与 `pull_request` 触发，执行覆盖率门禁（>=80%）、API 集成测试、lint、build。
+- `e2e-web`：在 `push(main)` 与定时任务触发（`0 3 * * *`），执行 Web 端到端测试。
+- `govulncheck`：执行依赖漏洞扫描。
+- `fieldalignment`：执行结构体字段对齐检查。
 
 ## 文档索引
 
@@ -316,6 +329,7 @@ make clean          # 清理 bin 与覆盖率产物
   - `make fmt`
   - `make lint`
   - `make test`
+  - `make test-api-integration`（涉及 Web 接口改动时）
   - `make swagger-check`（涉及 API 文档时）
 
 ## 联系信息
