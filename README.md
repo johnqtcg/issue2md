@@ -199,7 +199,43 @@ curl -sS -X POST http://127.0.0.1:8080/convert \
 - 出参: `text/plain; charset=utf-8`（Markdown 内容）
 - 常见错误码: `400`（参数错误）、`401/403`（鉴权）、`404`（资源不存在）、`429`（限流）、`502`（上游错误）
 
-### 6) 认证与 AI 总结（可选）
+### 6) 容器启动（Docker）
+
+构建镜像（默认构建 Web 服务入口 `issue2mdweb`）:
+
+```bash
+# 方式一：使用 Makefile
+make docker-build
+
+# 方式二：直接 docker build
+docker build -f Dockerfile -t issue2md:latest .
+```
+
+启动 Web 服务容器:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e ISSUE2MD_WEB_ADDR=:8080 \
+  -e GITHUB_TOKEN=<your_github_pat> \
+  issue2md:latest
+```
+
+然后可在宿主机验证:
+
+```bash
+curl -i http://127.0.0.1:8080/
+curl -i http://127.0.0.1:8080/swagger
+curl -i http://127.0.0.1:8080/swagger/index.html
+```
+
+如需构建 CLI 入口（`cmd/issue2md`）:
+
+```bash
+docker build -f Dockerfile -t issue2md:cli --build-arg APP=issue2md .
+docker run --rm issue2md:cli https://github.com/<owner>/<repo>/issues/1
+```
+
+### 7) 认证与 AI 总结（可选）
 
 ```bash
 export GITHUB_TOKEN=<your_github_pat>
