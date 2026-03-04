@@ -36,6 +36,19 @@ jobs:
       - name: Build
         run: make build-all
 
+  docker-build:
+    name: Docker Image Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build web image (default APP=issue2mdweb)
+        run: make docker-build
+
+      - name: Build CLI image (APP=issue2md)
+        run: docker build -f Dockerfile --build-arg APP=issue2md -t issue2md:cli-ci .
+
   api-integration:
     name: API Integration
     runs-on: ubuntu-latest

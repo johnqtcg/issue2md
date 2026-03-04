@@ -1,181 +1,185 @@
 # issue2md
 
-将 GitHub Issue / Pull Request / Discussion URL 转换为结构化 Markdown 归档文档的 Go 工具，支持 CLI 批量处理与 Web 转换接口。
+[![CI](https://github.com/johnqtcg/issue2md/actions/workflows/ci.yml/badge.svg)](https://github.com/johnqtcg/issue2md/actions/workflows/ci.yml)
+![Go Version](https://img.shields.io/badge/go-1.25.7-00ADD8)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
-本项目使用codex 5.3 coding agent 完成开发，遵循SDD(Spec-Driven Development)，即规范驱动开发工作流实现。
-可参考开源项目: https://github.com/github/spec-kit
+Convert GitHub `Issue` / `Pull Request` / `Discussion` URLs into Markdown with both CLI and Web entrypoints.
 
-- 语言与版本: Go `1.25.7`（见 `go.mod`）
-- 核心依赖: `google/go-github/v72`、`oauth2`（见 `go.mod`）
-- 入口程序: `cmd/issue2md`（CLI）、`cmd/issue2mdweb`（Web）
+Language:
+- English (primary): `README.md`
+- Chinese: [README.zh-CN.md](README.zh-CN.md)
 
-## 目录
+## Overview
 
-- [项目代码结构](#项目代码结构)
-- [快速开始](#快速开始)
-- [架构与数据流](#架构与数据流)
-- [运行模式](#运行模式)
-- [常用命令（Makefile）](#常用命令makefile)
-- [文档索引](#文档索引)
-- [文档维护规则](#文档维护规则)
-- [联系信息](#联系信息)
+- Project type: `CLI tool + backend web service` (dual entrypoints).
+- Go version: `go 1.25.7` (from `go.mod`).
+- Module path: `github.com/johnqtcg/issue2md`.
 
-## 项目代码结构
+## Quick Start
 
-```text
-.
-├── AGENTS.md
-├── .github
-│   └── workflows
-│       └── ci.yml              # CI 工作流（测试/Lint/构建/安全检查）
-├── constitution.md              # 项目开发宪法
-├── Dockerfile                   # 容器镜像构建定义
-├── Makefile                     # 项目 Makefile
-├── renovate.json                # 依赖自动更新策略（Renovate）
-├── go.mod
-├── go.sum
-├── cmd                          # 入口程序
-│   ├── issue2md
-│   │   ├── main.go              # CLI 入口
-│   │   └── main_test.go
-│   └── issue2mdweb
-│       ├── main.go              # Web 服务入口（默认 :8080）
-│       ├── handler.go           # HTTP 路由与处理器
-│       ├── templates.go         # HTML 模板加载（含内置回退模板）
-│       └── main_test.go
-├── internal
-│   ├── cli                      # CLI 编排、输出、批处理、退出码
-│   ├── config                   # flags + env 配置加载
-│   ├── parser                   # GitHub URL 解析与规范化
-│   ├── github                   # REST/GraphQL 抓取、重试、错误分类
-│   ├── converter                # Markdown 渲染与 AI Summary
-│   └── webapp                   # Web 路由与模板复用逻辑
-├── tests
-│   ├── integration
-│   │   └── http
-│   │       └── web_api_integration_test.go # Web API 集成测试
-│   └── e2e
-│       └── web
-│           └── web_e2e_test.go  # Web 端到端测试
-├── web
-│   ├── templates
-│   │   └── index.html
-│   ├── swaggerui
-│   │   ├── index.html           # 本地 Swagger UI 页面
-│   │   ├── swagger-ui.css
-│   │   ├── swagger-ui-bundle.js
-│   │   └── swagger-ui-standalone-preset.js
-│   └── static
-│       └── style.css
-├── docs
-│   ├── swagger.json             # 生成产物（OpenAPI）
-│   └── swagger.yaml             # 生成产物（OpenAPI）
-└── specs                        # specs 目录
-    └── 001-core-functionality   # 功能需求文档
-        ├── spec.md              # 规范文档     
-        ├── plan.md              # 计划文档
-        ├── tasks.md             # 任务列表
-        └── api-sketch.md        # api 草图
-```
+### Prerequisites
 
-## 快速开始
+- Go `>= 1.25` (current: `1.25.7`)
+- `golangci-lint` for `make lint`
+- `swag` for `make swagger` / `make swagger-check`
+- Docker for `make docker-build`
 
-### 1) 环境准备
+### Command Verifiability
 
-- Go: `>= 1.25`（当前仓库为 `1.25.7`）
-- 可选工具:
-  - `golangci-lint`（用于 `make lint`）
-  - `swag`（用于 `make swagger`，也可先执行 `make install-swag`）
+`Verified` below means executed in this agent session on `2026-03-04`.
 
-### 2) 安装 CLI 到 GOBIN（或 GOPATH/bin）
-
-远程安装（基于当前模块路径）:
+Verified in this session:
 
 ```bash
-go install github.com/johnqtcg/issue2md/cmd/issue2md@latest
-
-# 验证是否安装成功
-which issue2md
-/Users/john/go/bin/issue2md
-
-# 转换示例
-issue2md https://github.com/github/spec-kit/issues/75
-OK url=https://github.com/github/spec-kit/issues/75 type=issue output=github-spec-kit-issue-75.md
-
-# 查看文档
-head -n 10 github-spec-kit-issue-75.md
----
-type: 'issue'
-title: 'SpecKit creates the illusion of work, generating a bunch of text'
-number: 75
-state: 'open'
-author: 'NaikSoftware'
-created_at: '2025-09-08T11:45:16Z'
-updated_at: '2025-11-01T04:58:22Z'
-url: 'https://github.com/github/spec-kit/issues/75'
-labels: []
+make help
+make test
+make lint
+make cover-check COVER_MIN=80
+make build-cli
+make web
+make swagger-check
+./bin/issue2md --stdout https://github.com/github/spec-kit/issues/75
 ```
 
-本地安装（当前工作副本）:
+Local note:
+- `make docker-build` failed locally in this session because Docker daemon was unreachable (`Cannot connect to the Docker daemon`).
+- Docker build validation is enforced in GitHub Actions on Linux runner (`docker-build` job).
 
-```bash
-make install-cli
-# 或
-go install ./cmd/issue2md
-```
-
-提示:
-- 若仓库是私有仓库，请配置 `GOPRIVATE` 与 GitHub 访问凭据。
-- 安装后请确认 `$GOBIN`（或 `$GOPATH/bin`）已在 `PATH` 中。
-
-### 3) 运行 CLI（单条 URL）
+### Build Locally
 
 ```bash
 make build-cli
+make web
+```
+
+Generated binaries:
+- `bin/issue2md`
+- `bin/issue2mdweb`
+
+### Run CLI
+
+Single URL:
+
+```bash
 ./bin/issue2md https://github.com/<owner>/<repo>/issues/<number>
 ```
 
-### 4) 批量导出
+Batch mode (one URL per line):
 
 ```bash
-cat > urls.txt <<'EOF'
-https://github.com/<owner>/<repo>/issues/1
-https://github.com/<owner>/<repo>/pull/2
-https://github.com/<owner>/<repo>/discussions/3
-EOF
-
 ./bin/issue2md --input-file urls.txt --output out
 ```
 
-### 5) 运行 Web 服务并验证
+### Run Web Service
 
 ```bash
-make web
 ./bin/issue2mdweb
 ```
 
-服务默认监听 `:8080`（见 `cmd/issue2mdweb/main.go`）。
-可通过 `ISSUE2MD_WEB_ADDR` 覆盖监听地址，例如：`ISSUE2MD_WEB_ADDR=127.0.0.1:18080 ./bin/issue2mdweb`。
-服务已支持优雅停机：收到 `SIGINT/SIGTERM` 后会触发 `http.Server.Shutdown`，默认等待最多 `10s` 处理在途请求。
+Default listen address is `:8080`. Override with `ISSUE2MD_WEB_ADDR`:
 
 ```bash
-curl -i http://127.0.0.1:8080/
-curl -i http://127.0.0.1:8080/swagger
-curl -i http://127.0.0.1:8080/swagger/index.html
+ISSUE2MD_WEB_ADDR=127.0.0.1:18080 ./bin/issue2mdweb
 ```
 
-Swagger UI 静态资源由服务本地托管（`/swagger/assets/*`），离线环境也可访问文档与调试接口。
+## Project Structure
 
-将 GitHub URL 转换为 Markdown 的两种方式：
+```text
+.
+├── cmd/
+│   ├── issue2md/            # CLI entrypoint
+│   └── issue2mdweb/         # Web entrypoint
+├── internal/
+│   ├── cli/                 # CLI orchestration and output writing
+│   ├── config/              # flags/env config loading
+│   ├── parser/              # GitHub URL parsing
+│   ├── github/              # GitHub API fetching
+│   ├── converter/           # Markdown rendering and optional AI summary
+│   └── webapp/              # HTTP handlers and template wiring
+├── tests/
+│   ├── integration/http/    # API integration tests
+│   └── e2e/web/             # Web E2E tests
+├── web/                     # Embedded templates and static assets
+├── docs/                    # OpenAPI artifacts
+├── Makefile
+└── Dockerfile
+```
 
-1) 浏览器表单
+## Architecture and Data Flow
 
-- 打开 `http://127.0.0.1:8080/`
-- 在输入框粘贴 URL（Issue/PR/Discussion）
-- 点击 `Convert`
-- 浏览器会收到 `text/plain` 响应，即 Markdown 正文，可直接复制保存
+CLI path:
 
-2) API 调用（推荐脚本化）
+```text
+cmd/issue2md -> internal/cli -> internal/parser -> internal/github -> internal/converter -> file/stdout
+```
+
+Web path:
+
+```text
+cmd/issue2mdweb -> internal/webapp -> internal/parser -> internal/github -> internal/converter -> HTTP response
+```
+
+## Common Commands
+
+Command source of truth: root `Makefile`.
+
+| Command | Purpose | Status |
+|---|---|---|
+| `make help` | List make targets | Verified (local session) |
+| `make test` | Run all tests | Verified (local session) |
+| `make lint` | Run `golangci-lint` | Verified (local session) |
+| `make cover-check COVER_MIN=80` | Coverage gate | Verified (local session) |
+| `make build-cli` | Build CLI binary | Verified (local session) |
+| `make web` | Build Web binary | Verified (local session) |
+| `make swagger-check` | Regenerate and verify OpenAPI artifacts | Verified (local session) |
+| `./bin/issue2md --stdout <github-url>` | Real GitHub conversion | Verified (local session; requires `GITHUB_TOKEN`) |
+| `make test-api-integration` | API integration tests | Defined in Makefile + CI |
+| `make test-e2e-web` | Web E2E tests | Defined in Makefile + CI |
+| `make docker-build` | Build Docker image | Defined in Makefile + CI (Linux runner) |
+
+## Configuration and Environment
+
+### Runtime Environment Variables
+
+| Variable | Purpose | Required |
+|---|---|---|
+| `GITHUB_TOKEN` | GitHub token (used when `--token` is not passed) | Recommended |
+| `OPENAI_API_KEY` | Enable AI summary | Optional |
+| `ISSUE2MD_AI_BASE_URL` | Override AI base URL | Optional |
+| `ISSUE2MD_AI_MODEL` | Override AI model | Optional |
+| `ISSUE2MD_WEB_ADDR` | Web listen address (default `:8080`) | Optional |
+
+### CLI Flags (`internal/config/loader.go`)
+
+| Flag | Description | Constraints |
+|---|---|---|
+| `--output` | Output file/directory | Required in batch mode |
+| `--format` | Output format | Only `markdown` is supported |
+| `--include-comments` | Include comments (`true` by default) | - |
+| `--input-file` | Batch input file | Conflicts with `--stdout` |
+| `--stdout` | Write markdown to stdout | Conflicts with `--input-file` |
+| `--force` | Overwrite existing output files | - |
+| `--token` | GitHub token (higher priority than `GITHUB_TOKEN`) | - |
+| `--lang` | Summary language override | - |
+
+Default output filename pattern (`internal/cli/output.go`):
+
+```text
+<owner>-<repo>-<issue|pr|discussion>-<number>.md
+```
+
+## Web API Example
+
+Routes:
+- `GET /`
+- `POST /convert` (form field: `url`)
+- `GET /openapi.json`
+- `GET /swagger` (redirects to `/swagger/index.html`)
+- `GET /swagger/index.html`
+- `GET /swagger/assets/*`
+
+Example request:
 
 ```bash
 curl -sS -X POST http://127.0.0.1:8080/convert \
@@ -183,200 +187,59 @@ curl -sS -X POST http://127.0.0.1:8080/convert \
   --data-urlencode 'url=https://github.com/<owner>/<repo>/issues/1'
 ```
 
-保存为本地 `.md` 文件：
+## Testing and Quality
+
+Local quality gates:
+- `make test`
+- `make lint`
+- `make cover-check COVER_MIN=80` (session result: `81.5%`)
+
+CI workflow (`.github/workflows/ci.yml`):
+- `ci`: `cover-check` + `lint` + `build-all`
+- `docker-build`: Docker build validation (web default + CLI variant)
+- `api-integration`: `make test-api-integration`
+- `e2e-web`: `make test-e2e-web` (push/schedule)
+- `govulncheck`: dependency vulnerability scan
+- `fieldalignment`: struct field alignment check
+
+## Docker
+
+These commands are defined by `Dockerfile` and `Makefile`:
 
 ```bash
-curl -sS -X POST http://127.0.0.1:8080/convert \
-  -H 'Content-Type: application/x-www-form-urlencoded' \
-  --data-urlencode 'url=https://github.com/<owner>/<repo>/pull/2' \
-  -o out.md
-```
-
-接口约定（见 `cmd/issue2mdweb/handler.go`）:
-
-- 路径: `POST /convert`
-- 入参: form 字段 `url`
-- 出参: `text/plain; charset=utf-8`（Markdown 内容）
-- 常见错误码: `400`（参数错误）、`401/403`（鉴权）、`404`（资源不存在）、`429`（限流）、`502`（上游错误）
-
-### 6) 容器启动（Docker）
-
-构建镜像（默认构建 Web 服务入口 `issue2mdweb`）:
-
-```bash
-# 方式一：使用 Makefile
 make docker-build
-
-# 方式二：直接 docker build
-docker build -f Dockerfile -t issue2md:latest .
-```
-
-启动 Web 服务容器:
-
-```bash
 docker run --rm -p 8080:8080 \
   -e ISSUE2MD_WEB_ADDR=:8080 \
   -e GITHUB_TOKEN=<your_github_pat> \
   issue2md:latest
 ```
 
-然后可在宿主机验证:
+`Dockerfile` defaults to `APP=issue2mdweb`. Use `--build-arg APP=issue2md` for CLI image.
 
-```bash
-curl -i http://127.0.0.1:8080/
-curl -i http://127.0.0.1:8080/swagger
-curl -i http://127.0.0.1:8080/swagger/index.html
-```
+## Documentation Maintenance
 
-如需构建 CLI 入口（`cmd/issue2md`）:
+Update this README when these repository changes happen:
 
-```bash
-docker build -f Dockerfile -t issue2md:cli --build-arg APP=issue2md .
-docker run --rm issue2md:cli https://github.com/<owner>/<repo>/issues/1
-```
+| Repository Change | README Sections to Update |
+|---|---|
+| New `cmd/*/main.go` entrypoint | Overview, Quick Start, Structure, Commands |
+| Added/changed environment variables | Configuration and Environment |
+| Makefile target added/renamed | Common Commands |
+| CI workflow changed | Badges, Testing and Quality |
+| New module directory (`internal/*`/`tests/*`) | Structure, Architecture |
+| API route changed | Web API Example |
+| Go version changed | Badges, Quick Start prerequisites |
 
-### 7) 认证与 AI 总结（可选）
+## Governance Files
 
-```bash
-export GITHUB_TOKEN=<your_github_pat>
-export OPENAI_API_KEY=<your_openai_key>
-export ISSUE2MD_AI_BASE_URL=<optional_base_url>
-export ISSUE2MD_AI_MODEL=<optional_model>
-```
+- `LICENSE`: present (`MIT`) -> [LICENSE](LICENSE)
+- `CONTRIBUTING.md`: present -> [CONTRIBUTING.md](CONTRIBUTING.md)
+- `CODE_OF_CONDUCT.md`: present -> [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- `SECURITY.md`: present -> [SECURITY.md](SECURITY.md)
+- `CHANGELOG.md`: present -> [CHANGELOG.md](CHANGELOG.md)
 
-说明:
-- `GITHUB_TOKEN` 可提升 GitHub API 限额（见 `internal/config/loader.go`）。
-- 配置 `OPENAI_API_KEY` 后会启用 AI Summary（见 `internal/converter/summary_openai.go`）。
-
-## 架构与数据流
-
-### 组件职责
-
-- `internal/parser`: 将 GitHub URL 规范化为 `ResourceRef`。
-- `internal/github`: 按资源类型抓取 Issue/PR/Discussion，处理分页、重试与错误分类。
-- `internal/converter`: 渲染 front matter、metadata、timeline/thread/reviews、references；可选 AI Summary。
-- `internal/cli`: 负责单条/批量流程、输出落盘、状态行与退出码。
-- `cmd/issue2mdweb`: 复用 parser/fetcher/renderer，通过 HTTP 暴露转换能力。
-
-### 调用路径
-
-```text
-CLI:
-cmd/issue2md -> internal/cli -> parser -> github(fetch) -> converter(render) -> output(file/stdout)
-
-Web:
-cmd/issue2mdweb -> parser -> github(fetch) -> converter(render) -> HTTP response
-```
-
-### 错误与退出码（CLI）
-
-来自 `internal/cli/exitcode.go`:
-
-- `0`: 全部成功
-- `1`: 通用运行时错误
-- `2`: 参数错误
-- `3`: 鉴权/鉴权范围错误
-- `4`: 批处理部分失败
-- `5`: 输出文件冲突（未使用 `--force`）
-
-## 运行模式
-
-### CLI 模式
-
-单条 URL:
-
-```bash
-issue2md <url> [flags]
-```
-
-批处理:
-
-```bash
-issue2md --input-file urls.txt --output out [flags]
-```
-
-主要 flags（见 `internal/config/loader.go`）:
-
-- `--output`: 输出文件或目录
-- `--format`: 仅支持 `markdown`
-- `--include-comments`: 是否包含评论（默认 `true`）
-- `--input-file`: 批量输入文件（每行一个 URL）
-- `--stdout`: 输出到标准输出（不能与 `--input-file` 同时使用）
-- `--force`: 覆盖同名输出文件
-- `--token`: GitHub token（优先于 `GITHUB_TOKEN`）
-- `--lang`: AI 总结语言覆盖（如 `zh` / `en`）
-
-### Web 模式
-
-来自 `cmd/issue2mdweb/handler.go`:
-
-- `GET /` 页面入口
-- `POST /convert` 转换接口（表单字段 `url`）
-- `GET /openapi.json` 返回本地生成的 OpenAPI JSON
-- `GET /swagger` 跳转到 Swagger UI 页面
-- `GET /swagger/index.html` Swagger UI 文档与调试页面（Try it out）
-- `GET /swagger/assets/*` 本地 Swagger UI 静态资源（无外网依赖）
-
-OpenAPI 文档由 `make swagger` 生成到 `docs/`。
-
-## 常用命令（Makefile）
-
-```bash
-make help           # 查看所有目标
-make check-tools    # 检查 Go/gofmt，提示可选工具 golangci-lint/swag
-make fmt            # 格式化所有受 Git 跟踪的 .go 文件
-make test           # 运行全部测试
-make test-api-integration # 运行 Web API 集成测试（target 内已启用 ISSUE2MD_API_INTEGRATION=1）
-make test-e2e-web   # 运行 Web E2E（target 内已启用 ISSUE2MD_E2E=1）
-make cover          # 覆盖率报告（coverage.out）
-make cover-check    # 覆盖率门禁（默认 >= 80，可用 COVER_MIN 调整）
-make lint           # golangci-lint run --config .golangci.yaml ./...
-make install-swag   # 安装 swag CLI
-make swagger        # 生成 docs/swagger.json 与 docs/swagger.yaml
-make swagger-check  # 校验 swagger 生成文件存在
-make build-all      # 构建全部二进制
-make build-cli      # 构建 issue2md
-make build-web      # 构建 issue2mdweb
-make install-cli    # 安装 issue2md 到 GOBIN（或 GOPATH/bin）
-make install-web    # 安装 issue2mdweb 到 GOBIN（或 GOPATH/bin）
-make run-cli ARGS="https://github.com/<owner>/<repo>/issues/1"
-make run-web
-make ci             # fmt + lint + test + test-api-integration
-make clean          # 清理 bin 与覆盖率产物
-```
-
-### CI 工作流（.github/workflows/ci.yml）
-
-- `ci`：在 `push(main)` 与 `pull_request` 触发，执行覆盖率门禁（>=80%）、lint、build。
-- `api-integration`：在 `push(main)` 与 `pull_request` 触发，执行 Web API 集成测试。
-- `e2e-web`：在 `push(main)` 与定时任务触发（`0 3 * * *`），执行 Web 端到端测试。
-- `govulncheck`：执行依赖漏洞扫描。
-- `fieldalignment`：执行结构体字段对齐检查。
-
-## 文档索引
-
-- 核心规范: `constitution.md`
-- 产品/技术规格: `specs/001-core-functionality/spec.md`
-- 实施计划: `specs/001-core-functionality/plan.md`
-- 开发任务拆分: `specs/001-core-functionality/tasks.md`
-- API 草案: `specs/001-core-functionality/api-sketch.md`
-- Lint 配置: `.golangci.yaml`
-
-## 文档维护规则
-
-- 维护责任人: johnqtcg
-- 更新时机:
-  - 新增/变更 CLI flags 后
-  - 新增/变更 HTTP 路由后
-  - Makefile 新增/删除目标后
-  - `docs/swagger.json` / `docs/swagger.yaml` 重新生成后
-- 提交前最小检查:
-  - `make fmt`
-  - `make lint`
-  - `make test`
-  - `make test-api-integration`（涉及 Web 接口改动时）
-  - `make swagger-check`（涉及 API 文档时）
-
-## 联系信息
-
-- desperateslope@gmail.com
+Chinese translations:
+- [README.zh-CN.md](README.zh-CN.md)
+- [CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md)
+- [CODE_OF_CONDUCT.zh-CN.md](CODE_OF_CONDUCT.zh-CN.md)
+- [SECURITY.zh-CN.md](SECURITY.zh-CN.md)
