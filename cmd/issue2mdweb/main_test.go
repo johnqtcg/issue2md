@@ -527,6 +527,77 @@ func TestResolveWebAddr(t *testing.T) {
 	}
 }
 
+func TestResolveWebWriteTimeout(t *testing.T) {
+	tcs := []struct {
+		name    string
+		env     string
+		want    time.Duration
+		wantErr bool
+	}{
+		{name: "default", env: "", want: 120 * time.Second},
+		{name: "custom seconds", env: "75s", want: 75 * time.Second},
+		{name: "custom minutes", env: "2m", want: 2 * time.Minute},
+		{name: "trim spaces", env: " 90s ", want: 90 * time.Second},
+		{name: "invalid duration", env: "abc", wantErr: true},
+		{name: "non positive duration", env: "0s", wantErr: true},
+	}
+
+	for _, tc := range tcs {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv(webWriteTimeoutEnv, tc.env)
+			got, err := resolveWebWriteTimeout()
+			if tc.wantErr {
+				if err == nil {
+					t.Fatal("resolveWebWriteTimeout() error = nil, want error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("resolveWebWriteTimeout() error = %v, want nil", err)
+			}
+			if got != tc.want {
+				t.Fatalf("resolveWebWriteTimeout() = %s, want %s", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestNewHTTPServerUsesSafeTimeoutDefaults(t *testing.T) {
+	t.Parallel()
+
+	handler := http.NewServeMux()
+	server := newHTTPServer(":8080", handler, 120*time.Second)
+
+	if server.Addr != ":8080" {
+		t.Fatalf("server.Addr = %q, want :8080", server.Addr)
+	}
+	if server.Handler != handler {
+		t.Fatal("server.Handler does not match input handler")
+	}
+	if server.ReadHeaderTimeout != 5*time.Second {
+		t.Fatalf("ReadHeaderTimeout = %s, want 5s", server.ReadHeaderTimeout)
+	}
+	if server.ReadTimeout != 15*time.Second {
+		t.Fatalf("ReadTimeout = %s, want 15s", server.ReadTimeout)
+	}
+	if server.WriteTimeout != 120*time.Second {
+		t.Fatalf("WriteTimeout = %s, want 120s", server.WriteTimeout)
+	}
+	if server.IdleTimeout != 60*time.Second {
+		t.Fatalf("IdleTimeout = %s, want 60s", server.IdleTimeout)
+	}
+}
+
+func TestNewHTTPServerFallsBackToDefaultWriteTimeout(t *testing.T) {
+	t.Parallel()
+
+	server := newHTTPServer(":8080", http.NewServeMux(), 0)
+	if server.WriteTimeout != 120*time.Second {
+		t.Fatalf("WriteTimeout = %s, want 120s", server.WriteTimeout)
+	}
+}
+
 type fakeWebParser struct {
 	err error
 	ref gh.ResourceRef

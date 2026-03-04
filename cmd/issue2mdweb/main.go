@@ -24,6 +24,16 @@ import (
 )
 
 const defaultShutdownTimeout = 10 * time.Second
+const (
+	defaultReadHeaderTimeout = 5 * time.Second
+	defaultReadTimeout       = 15 * time.Second
+	// /convert may spend tens of seconds in upstream fetch/summarization before first byte.
+	// Keep write timeout comfortably above known upstream client timeouts (30s/45s).
+	defaultWriteTimeout = 120 * time.Second
+	defaultIdleTimeout  = 60 * time.Second
+)
+
+const webWriteTimeoutEnv = "ISSUE2MD_WEB_WRITE_TIMEOUT"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -62,10 +72,12 @@ func main() {
 		openAPISpecPath: defaultOpenAPISpecPath,
 	})
 
-	server := &http.Server{
-		Addr:    resolveWebAddr(),
-		Handler: handler,
+	writeTimeout, err := resolveWebWriteTimeout()
+	if err != nil {
+		log.Fatalf("resolve web write timeout: %v", err)
 	}
+
+	server := newHTTPServer(resolveWebAddr(), handler, writeTimeout)
 
 	if _, err := fmt.Fprintf(os.Stdout, "issue2md web listening on %s\n", server.Addr); err != nil {
 		log.Printf("write startup message: %v", err)
@@ -122,4 +134,35 @@ func resolveWebAddr() string {
 		return addr
 	}
 	return ":8080"
+}
+
+func resolveWebWriteTimeout() (time.Duration, error) {
+	value := strings.TrimSpace(os.Getenv(webWriteTimeoutEnv))
+	if value == "" {
+		return defaultWriteTimeout, nil
+	}
+
+	timeout, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s=%q: parse duration: %w", webWriteTimeoutEnv, value, err)
+	}
+	if timeout <= 0 {
+		return 0, fmt.Errorf("%s=%q: duration must be greater than 0", webWriteTimeoutEnv, value)
+	}
+	return timeout, nil
+}
+
+func newHTTPServer(addr string, handler http.Handler, writeTimeout time.Duration) *http.Server {
+	if writeTimeout <= 0 {
+		writeTimeout = defaultWriteTimeout
+	}
+
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: defaultReadHeaderTimeout,
+		ReadTimeout:       defaultReadTimeout,
+		WriteTimeout:      writeTimeout,
+		IdleTimeout:       defaultIdleTimeout,
+	}
 }

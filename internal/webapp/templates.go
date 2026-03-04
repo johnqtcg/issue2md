@@ -3,20 +3,25 @@ package webapp
 import (
 	"fmt"
 	"html/template"
+	"io/fs"
 
 	webassets "github.com/johnqtcg/issue2md/web"
 )
 
 // LoadTemplate loads the HTML template from embedded assets with fallback support.
 func LoadTemplate() (*template.Template, error) {
-	tmpl, err := template.ParseFS(webassets.FS, "templates/index.html")
+	return loadTemplateFromFS(webassets.FS, "templates/index.html", DefaultIndexTemplate)
+}
+
+func loadTemplateFromFS(assets fs.FS, pattern, fallbackTemplate string) (*template.Template, error) {
+	tmpl, err := template.ParseFS(assets, pattern)
 	if err == nil {
 		return tmpl, nil
 	}
 
-	fallback, fallbackErr := template.New("index").Parse(DefaultIndexTemplate)
+	fallback, fallbackErr := template.New("index").Parse(fallbackTemplate)
 	if fallbackErr != nil {
-		return nil, fmt.Errorf("parse embedded template: %w", err)
+		return nil, fmt.Errorf("parse fallback template after loading %q failed (%v): %w", pattern, err, fallbackErr)
 	}
 	return fallback, nil
 }

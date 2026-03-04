@@ -16,6 +16,7 @@ import (
 
 // DefaultOpenAPISpecPath is the default OpenAPI JSON path used by the web handler.
 const DefaultOpenAPISpecPath = "docs/swagger.json"
+const maxConvertRequestBodyBytes = 1 << 20
 
 // Deps defines dependencies for building the web HTTP handler.
 type Deps struct {
@@ -103,7 +104,13 @@ func (h *webHandler) handleConvert(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxConvertRequestBodyBytes)
 	if err := r.ParseForm(); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		http.Error(w, "invalid form", http.StatusBadRequest)
 		return
 	}

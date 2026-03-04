@@ -77,6 +77,12 @@ make web
 ISSUE2MD_WEB_ADDR=127.0.0.1:18080 ./bin/issue2mdweb
 ```
 
+`/convert` 的写超时可通过 `ISSUE2MD_WEB_WRITE_TIMEOUT` 调整（Go duration 格式，默认 `120s`）：
+
+```bash
+ISSUE2MD_WEB_WRITE_TIMEOUT=90s ./bin/issue2mdweb
+```
+
 ## 项目结构
 
 ```text
@@ -143,6 +149,7 @@ cmd/issue2mdweb -> internal/webapp -> internal/parser -> internal/github -> inte
 | `ISSUE2MD_AI_BASE_URL` | AI 接口 base URL 覆盖 | 可选 |
 | `ISSUE2MD_AI_MODEL` | AI 模型名覆盖 | 可选 |
 | `ISSUE2MD_WEB_ADDR` | Web 服务监听地址（默认 `:8080`） | 可选 |
+| `ISSUE2MD_WEB_WRITE_TIMEOUT` | Web 请求处理阶段的响应写超时（Go duration，默认 `120s`） | 可选 |
 
 ### CLI flags（`internal/config/loader.go`）
 

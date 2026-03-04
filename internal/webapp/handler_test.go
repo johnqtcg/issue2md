@@ -268,6 +268,13 @@ func TestNewHandlerConvertStatusMapping(t *testing.T) {
 	}{
 		{name: "method not allowed", method: http.MethodGet, wantStatus: http.StatusMethodNotAllowed},
 		{name: "invalid form", method: http.MethodPost, body: "url=%zz", contentType: "application/x-www-form-urlencoded", wantStatus: http.StatusBadRequest},
+		{
+			name:        "request body too large",
+			method:      http.MethodPost,
+			body:        "url=" + strings.Repeat("a", 2*1024*1024),
+			contentType: "application/x-www-form-urlencoded",
+			wantStatus:  http.StatusRequestEntityTooLarge,
+		},
 		{name: "missing url", method: http.MethodPost, body: "", contentType: "application/x-www-form-urlencoded", wantStatus: http.StatusBadRequest},
 		{name: "invalid github url", method: http.MethodPost, body: "url=bad", contentType: "application/x-www-form-urlencoded", parserErr: errors.New("bad url"), wantStatus: http.StatusBadRequest},
 		{

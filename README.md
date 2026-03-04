@@ -83,6 +83,12 @@ Default listen address is `:8080`. Override with `ISSUE2MD_WEB_ADDR`:
 ISSUE2MD_WEB_ADDR=127.0.0.1:18080 ./bin/issue2mdweb
 ```
 
+`/convert` write deadline can be tuned via `ISSUE2MD_WEB_WRITE_TIMEOUT` (Go duration format, default `120s`):
+
+```bash
+ISSUE2MD_WEB_WRITE_TIMEOUT=90s ./bin/issue2mdweb
+```
+
 ## Project Structure
 
 ```text
@@ -149,6 +155,7 @@ Command source of truth: root `Makefile`.
 | `ISSUE2MD_AI_BASE_URL` | Override AI base URL | Optional |
 | `ISSUE2MD_AI_MODEL` | Override AI model | Optional |
 | `ISSUE2MD_WEB_ADDR` | Web listen address (default `:8080`) | Optional |
+| `ISSUE2MD_WEB_WRITE_TIMEOUT` | Web response write timeout for request handling (Go duration, default `120s`) | Optional |
 
 ### CLI Flags (`internal/config/loader.go`)
 

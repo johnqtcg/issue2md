@@ -3,6 +3,7 @@ package webapp
 import (
 	"strings"
 	"testing"
+	"testing/fstest"
 )
 
 func TestLoadTemplate(t *testing.T) {
@@ -29,5 +30,20 @@ func TestLoadTemplate(t *testing.T) {
 	}
 	if !strings.Contains(html, `action="/convert"`) {
 		t.Fatalf("rendered template missing convert action:\n%s", html)
+	}
+}
+
+func TestLoadTemplateFromFSFallbackError(t *testing.T) {
+	t.Parallel()
+
+	_, err := loadTemplateFromFS(fstest.MapFS{}, "templates/index.html", "{{ if")
+	if err == nil {
+		t.Fatal("loadTemplateFromFS() error = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "parse fallback template") {
+		t.Fatalf("error = %v, want fallback parse context", err)
+	}
+	if !strings.Contains(err.Error(), "template: index:") {
+		t.Fatalf("error = %v, want fallback parse failure details", err)
 	}
 }

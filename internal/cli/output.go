@@ -53,7 +53,7 @@ func (w *fileOutputWriter) Write(cfg config.Config, mode Mode, ref gh.ResourceRe
 		return "", fmt.Errorf("create output directory %q: %w", parentDir, err)
 	}
 
-	if err := os.WriteFile(targetPath, markdown, 0o644); err != nil {
+	if err := os.WriteFile(targetPath, markdown, 0o600); err != nil {
 		return "", fmt.Errorf("write output file %q: %w", targetPath, err)
 	}
 	return targetPath, nil

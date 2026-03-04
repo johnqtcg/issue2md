@@ -220,3 +220,24 @@ func TestOutputWriterCreatedDirectoryPermission(t *testing.T) {
 		})
 	}
 }
+
+func TestOutputWriterCreatedFilePermission(t *testing.T) {
+	t.Parallel()
+
+	target := filepath.Join(t.TempDir(), "output.md")
+	w := NewOutputWriter(new(bytes.Buffer))
+	ref := gh.ResourceRef{Owner: "octo", Repo: "repo", Type: gh.ResourceIssue, Number: 1}
+
+	if _, err := w.Write(config.Config{OutputPath: target}, ModeSingle, ref, []byte("secret")); err != nil {
+		t.Fatalf("Write error = %v, want nil", err)
+	}
+
+	info, err := os.Stat(target)
+	if err != nil {
+		t.Fatalf("Stat output file error = %v", err)
+	}
+	perm := info.Mode().Perm()
+	if perm&0o077 != 0 {
+		t.Fatalf("file perm = %o, want no group/other access bits", perm)
+	}
+}
