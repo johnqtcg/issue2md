@@ -54,7 +54,7 @@ func TestOpenAISummarizerSuccess(t *testing.T) {
 	}
 
 	s := NewOpenAISummarizer(OpenAISummarizerConfig{
-		APIKey:     "test-key",
+		AuthValue:  "test-key",
 		BaseURL:    "https://api.test",
 		Model:      "gpt-test",
 		HTTPClient: clientHTTP,
@@ -166,7 +166,7 @@ func TestOpenAISummarizerAcceptsJSONInCodeFence(t *testing.T) {
 	}
 
 	s := NewOpenAISummarizer(OpenAISummarizerConfig{
-		APIKey:     "test-key",
+		AuthValue:  "test-key",
 		BaseURL:    "https://api.test",
 		Model:      "gpt-test",
 		HTTPClient: clientHTTP,
@@ -193,5 +193,41 @@ func TestBuildSourceTextIsCapped(t *testing.T) {
 	}
 	if !strings.Contains(out, "[truncated]") {
 		t.Fatalf("buildSourceText should include truncation marker: %s", fmt.Sprintf("%q", out[len(out)-80:]))
+	}
+}
+
+func TestOpenAISummarizerRejectsInsecureEndpoint(t *testing.T) {
+	t.Parallel()
+
+	s := NewOpenAISummarizer(OpenAISummarizerConfig{
+		AuthValue: "test-key",
+		BaseURL:   "http://api.test",
+		Model:     "gpt-test",
+	})
+
+	_, err := s.Summarize(context.Background(), sampleIssueData(), "en")
+	if err == nil {
+		t.Fatal("Summarize error = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "https") {
+		t.Fatalf("error = %v, want mention https", err)
+	}
+}
+
+func TestOpenAISummarizerRejectsPrivateIPLiteralEndpoint(t *testing.T) {
+	t.Parallel()
+
+	s := NewOpenAISummarizer(OpenAISummarizerConfig{
+		AuthValue: "test-key",
+		BaseURL:   "https://127.0.0.1",
+		Model:     "gpt-test",
+	})
+
+	_, err := s.Summarize(context.Background(), sampleIssueData(), "en")
+	if err == nil {
+		t.Fatal("Summarize error = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "private ip") {
+		t.Fatalf("error = %v, want mention private ip", err)
 	}
 }

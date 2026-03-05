@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -22,14 +23,20 @@ func NewFileInputReader() InputReader {
 func (r *fileInputReader) Read(path string, handle func(line string) error) (err error) {
 	_ = r
 
-	file, err := os.Open(path)
+	cleanPath := filepath.Clean(path)
+	if cleanPath == "." {
+		return fmt.Errorf("open input file %q: path is empty", path)
+	}
+
+	// #nosec G304 -- this CLI intentionally opens a user-specified local file path.
+	file, err := os.Open(cleanPath)
 	if err != nil {
-		return fmt.Errorf("open input file %q: %w", path, err)
+		return fmt.Errorf("open input file %q: %w", cleanPath, err)
 	}
 	defer func() {
 		closeErr := file.Close()
 		if err == nil && closeErr != nil {
-			err = fmt.Errorf("close input file %q: %w", path, closeErr)
+			err = fmt.Errorf("close input file %q: %w", cleanPath, closeErr)
 		}
 	}()
 
@@ -44,7 +51,7 @@ func (r *fileInputReader) Read(path string, handle func(line string) error) (err
 		}
 	}
 	if scanErr := scanner.Err(); scanErr != nil {
-		return fmt.Errorf("scan input file %q: %w", path, scanErr)
+		return fmt.Errorf("scan input file %q: %w", cleanPath, scanErr)
 	}
 	return nil
 }

@@ -145,6 +145,8 @@ func (h *webHandler) handleConvert(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	// #nosec G705 -- markdown is returned as text/plain with nosniff, not rendered as HTML.
 	if _, err := w.Write(markdown); err != nil {
 		http.Error(w, "write response failed", http.StatusInternalServerError)
 	}

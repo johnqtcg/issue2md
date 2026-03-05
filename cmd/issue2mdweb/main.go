@@ -53,9 +53,9 @@ func main() {
 	var summarizer converter.Summarizer
 	if cfg.OpenAIAPIKey != "" {
 		summarizer = converter.NewOpenAISummarizer(converter.OpenAISummarizerConfig{
-			APIKey:  cfg.OpenAIAPIKey,
-			BaseURL: cfg.OpenAIBaseURL,
-			Model:   cfg.OpenAIModel,
+			AuthValue: cfg.OpenAIAPIKey,
+			BaseURL:   cfg.OpenAIBaseURL,
+			Model:     cfg.OpenAIModel,
 		})
 	}
 

@@ -38,16 +38,19 @@ func TestGraphQLQueryRequestShapeAndAuth(t *testing.T) {
 		}), nil
 	})
 
-	client := newGraphQLClient(Config{
+	client, err := newGraphQLClient(Config{
 		Token:      "gql-token",
 		HTTPClient: clientHTTP,
 		GraphQLURL: "https://api.test/graphql",
 	})
+	if err != nil {
+		t.Fatalf("newGraphQLClient error = %v, want nil", err)
+	}
 
 	var out struct {
 		Value string `json:"value"`
 	}
-	err := client.Query(context.Background(), "query Test($x:Int!){value}", map[string]any{"x": 7}, &out)
+	err = client.Query(context.Background(), "query Test($x:Int!){value}", map[string]any{"x": 7}, &out)
 	if err != nil {
 		t.Fatalf("Query error = %v, want nil", err)
 	}
@@ -100,12 +103,15 @@ func TestGraphQLQueryPaginatedPassesCursor(t *testing.T) {
 		return nil, nil
 	})
 
-	client := newGraphQLClient(Config{
+	client, err := newGraphQLClient(Config{
 		HTTPClient: clientHTTP,
 		GraphQLURL: "https://api.test/graphql",
 	})
+	if err != nil {
+		t.Fatalf("newGraphQLClient error = %v, want nil", err)
+	}
 
-	err := client.QueryPaginated(context.Background(), "query P { pageInfo { hasNextPage endCursor } }", map[string]any{}, func(page json.RawMessage) (bool, string, error) {
+	err = client.QueryPaginated(context.Background(), "query P { pageInfo { hasNextPage endCursor } }", map[string]any{}, func(page json.RawMessage) (bool, string, error) {
 		var out struct {
 			PageInfo struct {
 				EndCursor   string `json:"endCursor"`
@@ -132,13 +138,16 @@ func TestGraphQLQueryDecodeError(t *testing.T) {
 		return textHTTPResponse(http.StatusOK, "{not-json"), nil
 	})
 
-	client := newGraphQLClient(Config{
+	client, err := newGraphQLClient(Config{
 		HTTPClient: clientHTTP,
 		GraphQLURL: "https://api.test/graphql",
 	})
+	if err != nil {
+		t.Fatalf("newGraphQLClient error = %v, want nil", err)
+	}
 
 	var out map[string]any
-	err := client.Query(context.Background(), "query{}", nil, &out)
+	err = client.Query(context.Background(), "query{}", nil, &out)
 	if err == nil {
 		t.Fatal("Query error = nil, want error")
 	}
@@ -160,12 +169,15 @@ func TestGraphQLQueryPaginatedCursorStalled(t *testing.T) {
 		}), nil
 	})
 
-	client := newGraphQLClient(Config{
+	client, err := newGraphQLClient(Config{
 		HTTPClient: clientHTTP,
 		GraphQLURL: "https://api.test/graphql",
 	})
+	if err != nil {
+		t.Fatalf("newGraphQLClient error = %v, want nil", err)
+	}
 
-	err := client.QueryPaginated(context.Background(), "query P { pageInfo { hasNextPage endCursor } }", nil, func(page json.RawMessage) (bool, string, error) {
+	err = client.QueryPaginated(context.Background(), "query P { pageInfo { hasNextPage endCursor } }", nil, func(page json.RawMessage) (bool, string, error) {
 		var out struct {
 			PageInfo struct {
 				EndCursor   string `json:"endCursor"`
@@ -185,5 +197,33 @@ func TestGraphQLQueryPaginatedCursorStalled(t *testing.T) {
 	}
 	if call != 2 {
 		t.Fatalf("call count = %d, want 2", call)
+	}
+}
+
+func TestNewGraphQLClientRejectsInsecureEndpoint(t *testing.T) {
+	t.Parallel()
+
+	_, err := newGraphQLClient(Config{
+		GraphQLURL: "http://api.github.com/graphql",
+	})
+	if err == nil {
+		t.Fatal("newGraphQLClient error = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "https") {
+		t.Fatalf("error = %v, want mention https", err)
+	}
+}
+
+func TestNewGraphQLClientRejectsPrivateIPLiteral(t *testing.T) {
+	t.Parallel()
+
+	_, err := newGraphQLClient(Config{
+		GraphQLURL: "https://127.0.0.1/graphql",
+	})
+	if err == nil {
+		t.Fatal("newGraphQLClient error = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "private ip") {
+		t.Fatalf("error = %v, want mention private ip", err)
 	}
 }

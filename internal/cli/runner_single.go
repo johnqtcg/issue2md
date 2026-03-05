@@ -214,9 +214,9 @@ func (f defaultRendererFactory) New(cfg config.Config) converter.Renderer {
 	var summarizer converter.Summarizer
 	if cfg.OpenAIAPIKey != "" {
 		summarizer = converter.NewOpenAISummarizer(converter.OpenAISummarizerConfig{
-			APIKey:  cfg.OpenAIAPIKey,
-			BaseURL: cfg.OpenAIBaseURL,
-			Model:   cfg.OpenAIModel,
+			AuthValue: cfg.OpenAIAPIKey,
+			BaseURL:   cfg.OpenAIBaseURL,
+			Model:     cfg.OpenAIModel,
 		})
 	}
 	return converter.NewRenderer(summarizer)
@@ -225,10 +225,12 @@ func (f defaultRendererFactory) New(cfg config.Config) converter.Renderer {
 func writeStatusLine(w io.Writer, item ItemResult) {
 	switch item.Status {
 	case StatusOK:
+		// #nosec G705 -- writes plain text status lines to CLI output, not HTML/browser context.
 		if _, err := fmt.Fprintf(w, "OK url=%s type=%s output=%s\n", item.URL, item.ResourceType, item.OutputPath); err != nil {
 			return
 		}
 	default:
+		// #nosec G705 -- writes plain text status lines to CLI output, not HTML/browser context.
 		if _, err := fmt.Fprintf(w, "FAILED url=%s type=%s reason=%s\n", item.URL, item.ResourceType, item.Reason); err != nil {
 			return
 		}

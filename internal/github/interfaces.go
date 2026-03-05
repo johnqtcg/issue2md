@@ -67,7 +67,10 @@ func NewFetcher(cfg Config) (Fetcher, error) {
 		return nil, fmt.Errorf("create REST client: %w", err)
 	}
 
-	graphQLClient := newGraphQLClient(cfg)
+	graphQLClient, err := newGraphQLClient(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("create GraphQL client: %w", err)
+	}
 
 	return &fetcher{
 		cfg:  cfg,

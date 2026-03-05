@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/netip"
+	"net/url"
 	"strings"
 	"time"
 
@@ -38,7 +40,7 @@ type Summarizer interface {
 // OpenAISummarizerConfig configures OpenAI Responses API integration.
 type OpenAISummarizerConfig struct {
 	HTTPClient *http.Client
-	APIKey     string
+	AuthValue  string
 	BaseURL    string
 	Model      string
 }
@@ -82,13 +84,16 @@ func NewOpenAISummarizer(cfg OpenAISummarizerConfig) Summarizer {
 		httpClient: httpClient,
 		endpoint:   buildResponsesEndpoint(cfg.BaseURL),
 		model:      model,
-		apiKey:     cfg.APIKey,
+		apiKey:     cfg.AuthValue,
 	}
 }
 
 func (s *openAISummarizer) Summarize(ctx context.Context, data gh.IssueData, lang string) (Summary, error) {
 	if s.apiKey == "" {
 		return Summary{}, fmt.Errorf("openai api key is empty")
+	}
+	if err := validateResponsesEndpoint(s.endpoint); err != nil {
+		return Summary{}, fmt.Errorf("invalid openai responses endpoint: %w", err)
 	}
 
 	targetLang := resolveSummaryLanguage(lang, data)
@@ -109,6 +114,7 @@ func (s *openAISummarizer) Summarize(ctx context.Context, data gh.IssueData, lan
 	req.Header.Set("Authorization", "Bearer "+s.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
+	// #nosec G704 -- s.endpoint is validated by validateResponsesEndpoint before request execution.
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return Summary{}, fmt.Errorf("execute summary request: %w", err)
@@ -168,6 +174,39 @@ func buildResponsesEndpoint(baseURL string) string {
 		return trimmed + "/responses"
 	}
 	return trimmed + "/v1/responses"
+}
+
+func validateResponsesEndpoint(endpoint string) error {
+	parsed, err := url.Parse(strings.TrimSpace(endpoint))
+	if err != nil {
+		return fmt.Errorf("parse endpoint %q: %w", endpoint, err)
+	}
+	if parsed.Scheme != "https" {
+		return fmt.Errorf("endpoint must use https scheme")
+	}
+	if parsed.Hostname() == "" {
+		return fmt.Errorf("endpoint host is empty")
+	}
+	if parsed.User != nil {
+		return fmt.Errorf("endpoint must not include userinfo")
+	}
+	if isPrivateIPLiteral(parsed.Hostname()) {
+		return fmt.Errorf("endpoint must not use private ip literal")
+	}
+	return nil
+}
+
+func isPrivateIPLiteral(host string) bool {
+	addr, err := netip.ParseAddr(host)
+	if err != nil {
+		return false
+	}
+	return addr.IsPrivate() ||
+		addr.IsLoopback() ||
+		addr.IsLinkLocalUnicast() ||
+		addr.IsLinkLocalMulticast() ||
+		addr.IsMulticast() ||
+		addr.IsUnspecified()
 }
 
 func buildSummaryPrompt(data gh.IssueData, lang string) string {
