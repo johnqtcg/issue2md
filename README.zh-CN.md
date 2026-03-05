@@ -6,6 +6,22 @@
 
 将 GitHub `Issue` / `Pull Request` / `Discussion` URL 转换为 Markdown 的 Go 工具，提供 CLI 与 Web 两种入口。
 
+## 目录
+
+- [项目概览](#cn-overview)
+- [快速开始](#cn-quick-start)
+- [项目结构](#cn-project-structure)
+- [架构与数据流](#cn-architecture-and-flow)
+- [常用命令](#cn-common-commands)
+- [配置与环境变量](#cn-configuration-and-env)
+- [API 示例（Web）](#cn-web-api-example)
+- [测试与质量检查](#cn-testing-and-quality)
+- [故障排查（Troubleshooting）](#cn-troubleshooting)
+- [部署与运行（Docker）](#cn-docker)
+- [文档维护说明](#cn-documentation-maintenance)
+- [治理文件状态](#cn-governance-files)
+
+<a id="cn-overview"></a>
 ## 项目概览
 
 - 语言策略：中文说明 + 英文技术术语（命令、路径、环境变量名保持英文）。
@@ -13,6 +29,7 @@
 - Go 版本：`go 1.25.7`（见 `go.mod`）。
 - 模块路径：`github.com/johnqtcg/issue2md`。
 
+<a id="cn-quick-start"></a>
 ## 快速开始
 
 ### 前置条件
@@ -25,21 +42,20 @@
 
 ### 命令可验证性（Command Verifiability Gate）
 
-说明：这里的 “Verified” 指本次 agent 会话在 `2026-03-04` 的实际执行结果，不等同于你本机历史执行状态。
-
-本次会话已执行并通过：
+在本地执行质量/构建命令前，请先安装依赖工具并运行：
 
 ```bash
 make help
-make fmt
-make test
-make lint
-make cover-check COVER_MIN=80
+make ci COVER_MIN=80
 make build-cli
 make web
 make swagger-check
 ./bin/issue2md --stdout https://github.com/github/spec-kit/issues/75
 ```
+
+验证策略：
+- 以你本地实际执行结果为准。
+- CI（`.github/workflows/ci.yml`）会在 Linux runner 上执行并校验必需门禁。
 
 ### 本地构建
 
@@ -85,6 +101,7 @@ ISSUE2MD_WEB_ADDR=127.0.0.1:18080 ./bin/issue2mdweb
 ISSUE2MD_WEB_WRITE_TIMEOUT=90s ./bin/issue2mdweb
 ```
 
+<a id="cn-project-structure"></a>
 ## 项目结构
 
 ```text
@@ -108,6 +125,7 @@ ISSUE2MD_WEB_WRITE_TIMEOUT=90s ./bin/issue2mdweb
 └── Dockerfile
 ```
 
+<a id="cn-architecture-and-flow"></a>
 ## 架构与数据流
 
 CLI 路径：
@@ -122,25 +140,26 @@ Web 路径：
 cmd/issue2mdweb -> internal/webapp -> internal/parser -> internal/github -> internal/converter -> HTTP响应
 ```
 
+<a id="cn-common-commands"></a>
 ## 常用命令
 
 命令来源优先级：`Makefile`（本仓库主命令入口）。
 
 | 命令 | 用途 | 状态 |
 |---|---|---|
-| `make help` | 查看所有目标 | Verified（local session） |
-| `make fmt` | 使用 `gofmt` + `goimports-reviser` 格式化 Go 代码 | Defined in Makefile + CI |
-| `make test` | 运行全部测试 | Verified（local session） |
-| `make lint` | 执行 `golangci-lint` | Verified（local session） |
-| `make cover-check COVER_MIN=80` | 覆盖率门禁 | Verified（local session） |
-| `make build-cli` | 构建 CLI | Verified（local session） |
-| `make web` | 构建 Web 二进制 | Verified（local session） |
-| `make swagger-check` | 重新生成并校验 OpenAPI 文档 | Verified（local session） |
-| `./bin/issue2md --stdout <github-url>` | 真实 GitHub URL 转换 | Verified（local session, requires `GITHUB_TOKEN`） |
-| `make test-api-integration` | 运行 API 集成测试（target 内设置 `ISSUE2MD_API_INTEGRATION=1`） | Defined in Makefile + CI |
-| `make test-e2e-web` | 运行 Web E2E（target 内设置 `ISSUE2MD_E2E=1`） | Defined in Makefile + CI |
-| `make docker-build` | 构建容器镜像 | Defined in Makefile + CI（Linux runner） |
+| `make help` | 查看所有目标 | Makefile |
+| `make fmt` | 使用 `gofmt` + `goimports-reviser` 格式化 Go 代码 | Makefile + CI 门禁 |
+| `make ci COVER_MIN=80` | 必需本地门禁（等价 CI：`fmt-check` + 覆盖率 + lint + build） | Makefile + CI |
+| `make test` | 运行全部测试 | Makefile |
+| `make build-cli` | 构建 CLI | Makefile |
+| `make web` | 构建 Web 二进制 | Makefile |
+| `make swagger-check` | 重新生成并校验 OpenAPI 文档 | Makefile |
+| `./bin/issue2md --stdout <github-url>` | 真实 GitHub URL 转换 | 需要 `GITHUB_TOKEN` |
+| `make ci-api-integration` | API 集成门禁等价命令 | Makefile + CI |
+| `make ci-e2e-web` | Web E2E 门禁等价命令 | Makefile + CI（`push`/`schedule`） |
+| `make docker-build` | 构建容器镜像 | Makefile + CI（Linux runner） |
 
+<a id="cn-configuration-and-env"></a>
 ## 配置与环境变量
 
 ### 运行时环境变量
@@ -173,6 +192,7 @@ cmd/issue2mdweb -> internal/webapp -> internal/parser -> internal/github -> inte
 <owner>-<repo>-<issue|pr|discussion>-<number>.md
 ```
 
+<a id="cn-web-api-example"></a>
 ## API 示例（Web）
 
 ### 路由
@@ -192,24 +212,60 @@ curl -sS -X POST http://127.0.0.1:8080/convert \
   --data-urlencode 'url=https://github.com/<owner>/<repo>/issues/1'
 ```
 
+<a id="cn-testing-and-quality"></a>
 ## 测试与质量检查
 
 ### 本地质量门禁
 
-- 单元/集成测试：`make test`
-- 代码格式化：`make fmt`
-- 静态检查：`make lint`
-- 覆盖率门禁：`make cover-check COVER_MIN=80`（当前环境结果：`81.5%`）
+- 必需门禁：`make ci COVER_MIN=80`
+- 附加检查：`make ci-api-integration`
+- 附加检查：`make ci-e2e-web`（可选，对齐 CI e2e job 触发语义）
 
 ### CI 工作流（`.github/workflows/ci.yml`）
 
-- `ci`: `fmt`（gofmt + goimports-reviser 并校验无 diff）+ `cover-check` + `lint` + `build-all`
+- `ci`: `make ci COVER_MIN=80`（`fmt-check` + `cover-check` + `lint` + `build-all`）
 - `docker-build`: Docker 镜像构建校验（默认 web 入口 + CLI 入口）
-- `api-integration`: `make test-api-integration`
-- `e2e-web`: `make test-e2e-web`（仅 `push` 或定时）
+- `api-integration`: `make ci-api-integration`
+- `e2e-web`: `make ci-e2e-web`（仅 `push` 或定时）
 - `govulncheck`: 依赖漏洞检查
 - `fieldalignment`: 结构体字段对齐检查
 
+<a id="cn-troubleshooting"></a>
+## 故障排查（Troubleshooting）
+
+### GitHub Token 与权限问题
+
+- 现象：转换请求返回 GitHub 鉴权/权限错误。
+- 排查：
+  - 确认已设置 `GITHUB_TOKEN`（或显式传入 `--token`）。
+  - 确认 token 对目标仓库/讨论有读取权限。
+  - 若是 fine-grained token，确认目标仓库已被明确授权。
+
+### Docker daemon 不可用
+
+- 现象：`make docker-build` 报 daemon 连接失败。
+- 排查：
+  - 确认 Docker Desktop 或 Docker daemon 已启动。
+  - 执行 `docker info`，确认命令可成功返回。
+  - 若本地无 Docker，可依赖 CI 的 `docker-build` job 做构建校验。
+
+### `/convert` 慢请求或超时问题
+
+- 现象：上游抓取/摘要较慢时，Web 转换失败。
+- 排查：
+  - 按 SLA 调整 `ISSUE2MD_WEB_WRITE_TIMEOUT`（例如 `120s`、`180s`）。
+  - 检查上游网络连通性与 API 延迟。
+  - 用已知的小型公开 issue URL 复测，以隔离环境延迟因素。
+
+### CI 格式化门禁失败（`fmt-check`）
+
+- 现象：CI 报格式化 diff，阻止合并。
+- 处理：
+  - 先执行 `make fmt`。
+  - 提交格式化改动。
+  - 推送前本地执行 `make ci COVER_MIN=80` 复核。
+
+<a id="cn-docker"></a>
 ## 部署与运行（Docker）
 
 以下命令来自 `Dockerfile` 与 `Makefile`。本地执行依赖 Docker daemon；CI 中已由 `docker-build` job 在 Linux runner 验证构建。
@@ -224,6 +280,7 @@ docker run --rm -p 8080:8080 \
 
 `Dockerfile` 默认 `APP=issue2mdweb`，可通过 `--build-arg APP=issue2md` 构建 CLI 入口。
 
+<a id="cn-documentation-maintenance"></a>
 ## 文档维护说明
 
 以下变更发生时，应同步更新本 README：
@@ -238,8 +295,9 @@ docker run --rm -p 8080:8080 \
 | API 路由变更 | API 示例（Web） |
 | Go 版本变更 | 徽章、快速开始 |
 
-维护建议：在提交前至少执行 `make test` 与 `make lint`，涉及覆盖率门禁时执行 `make cover-check COVER_MIN=80`。
+维护建议：在提交前至少执行 `make ci COVER_MIN=80`，必要时补充执行 `make ci-api-integration` 与 `make ci-e2e-web`。
 
+<a id="cn-governance-files"></a>
 ## 治理文件状态
 
 - `LICENSE`: present (`MIT`)
