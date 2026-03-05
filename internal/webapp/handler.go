@@ -15,8 +15,10 @@ import (
 )
 
 // DefaultOpenAPISpecPath is the default OpenAPI JSON path used by the web handler.
-const DefaultOpenAPISpecPath = "docs/swagger.json"
-const maxConvertRequestBodyBytes = 1 << 20
+const (
+	DefaultOpenAPISpecPath     = "docs/swagger.json"
+	maxConvertRequestBodyBytes = 1 << 20
+)
 
 // Deps defines dependencies for building the web HTTP handler.
 type Deps struct {

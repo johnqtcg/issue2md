@@ -16,8 +16,10 @@ import (
 	"time"
 )
 
-const e2eGateEnv = "ISSUE2MD_E2E"
-const e2eAddrEnv = "ISSUE2MD_E2E_ADDR"
+const (
+	e2eGateEnv = "ISSUE2MD_E2E"
+	e2eAddrEnv = "ISSUE2MD_E2E_ADDR"
+)
 
 func TestIssue2mdWebE2EJourney(t *testing.T) {
 	if strings.TrimSpace(os.Getenv(e2eGateEnv)) != "1" {

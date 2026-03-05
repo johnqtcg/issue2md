@@ -11,8 +11,10 @@ import (
 	"time"
 )
 
-const defaultGraphQLURL = "https://api.github.com/graphql"
-const maxGraphQLPages = 1000
+const (
+	defaultGraphQLURL = "https://api.github.com/graphql"
+	maxGraphQLPages   = 1000
+)
 
 type graphQLClient struct {
 	httpClient *http.Client

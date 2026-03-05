@@ -69,16 +69,20 @@ func TestDoWithRetryBackoffSequence(t *testing.T) {
 
 type temporaryNetError struct{}
 
-func (temporaryNetError) Error() string   { return "temporary" }
-func (temporaryNetError) Timeout() bool   { return true }
+func (temporaryNetError) Error() string { return "temporary" }
+
+func (temporaryNetError) Timeout() bool { return true }
+
 func (temporaryNetError) Temporary() bool { return true }
 
 var _ net.Error = temporaryNetError{}
 
 type permanentNetError struct{}
 
-func (permanentNetError) Error() string   { return "permanent" }
-func (permanentNetError) Timeout() bool   { return false }
+func (permanentNetError) Error() string { return "permanent" }
+
+func (permanentNetError) Timeout() bool { return false }
+
 func (permanentNetError) Temporary() bool { return false }
 
 var _ net.Error = permanentNetError{}

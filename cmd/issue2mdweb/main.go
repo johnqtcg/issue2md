@@ -23,8 +23,8 @@ import (
 	"github.com/johnqtcg/issue2md/internal/parser"
 )
 
-const defaultShutdownTimeout = 10 * time.Second
 const (
+	defaultShutdownTimeout   = 10 * time.Second
 	defaultReadHeaderTimeout = 5 * time.Second
 	defaultReadTimeout       = 15 * time.Second
 	// /convert may spend tens of seconds in upstream fetch/summarization before first byte.
