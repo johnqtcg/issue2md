@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/netip"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -36,22 +38,22 @@ type graphQLResponse struct {
 	Errors []graphQLErrorMessage `json:"errors"`
 }
 
-func newGraphQLClient(cfg Config) *graphQLClient {
+func newGraphQLClient(cfg Config) (*graphQLClient, error) {
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 30 * time.Second}
 	}
 
-	endpoint := cfg.GraphQLURL
-	if endpoint == "" {
-		endpoint = defaultGraphQLURL
+	endpoint, err := resolveGraphQLEndpoint(cfg.GraphQLURL)
+	if err != nil {
+		return nil, err
 	}
 
 	return &graphQLClient{
 		httpClient: httpClient,
 		endpoint:   endpoint,
 		token:      cfg.Token,
-	}
+	}, nil
 }
 
 func (c *graphQLClient) Query(ctx context.Context, query string, variables map[string]any, out any) error {
@@ -117,6 +119,7 @@ func (c *graphQLClient) queryRaw(ctx context.Context, query string, variables ma
 		req.Header.Set("Authorization", "Bearer "+c.token)
 	}
 
+	// #nosec G704 -- c.endpoint is validated by resolveGraphQLEndpoint before request creation.
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("execute graphql request: %w", err)
@@ -153,4 +156,42 @@ func copyVariables(in map[string]any) map[string]any {
 		out[k] = v
 	}
 	return out
+}
+
+func resolveGraphQLEndpoint(raw string) (string, error) {
+	endpoint := strings.TrimSpace(raw)
+	if endpoint == "" {
+		endpoint = defaultGraphQLURL
+	}
+
+	parsed, err := url.Parse(endpoint)
+	if err != nil {
+		return "", fmt.Errorf("parse graphql endpoint %q: %w", endpoint, err)
+	}
+	if parsed.Scheme != "https" {
+		return "", fmt.Errorf("graphql endpoint must use https scheme")
+	}
+	if parsed.Hostname() == "" {
+		return "", fmt.Errorf("graphql endpoint host is empty")
+	}
+	if parsed.User != nil {
+		return "", fmt.Errorf("graphql endpoint must not include userinfo")
+	}
+	if isPrivateIPLiteral(parsed.Hostname()) {
+		return "", fmt.Errorf("graphql endpoint must not use private ip literal")
+	}
+	return parsed.String(), nil
+}
+
+func isPrivateIPLiteral(host string) bool {
+	addr, err := netip.ParseAddr(host)
+	if err != nil {
+		return false
+	}
+	return addr.IsPrivate() ||
+		addr.IsLoopback() ||
+		addr.IsLinkLocalUnicast() ||
+		addr.IsLinkLocalMulticast() ||
+		addr.IsMulticast() ||
+		addr.IsUnspecified()
 }
