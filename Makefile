@@ -10,13 +10,15 @@ COVER_MIN ?= 80
 GOLANGCI_LINT ?= golangci-lint
 GOCACHE_DIR ?= /tmp/gocache
 GOLANGCI_LINT_CACHE_DIR ?= /tmp/golangci-lint-cache
+GOIMPORTS_REVISER ?= goimports-reviser
+GOIMPORTS_REVISER_INSTALL ?= github.com/incu6us/goimports-reviser/v3@v3.9.0
 SWAG ?= swag
 SWAG_INSTALL ?= github.com/swaggo/swag/cmd/swag@latest
 SWAG_DIR ?= cmd/issue2mdweb
 SWAG_ENTRY ?= main.go
 SWAG_OUTPUT ?= docs
 
-.PHONY: help check-tools fmt test test-api-integration test-e2e-web cover cover-check lint install-swag swagger swagger-check \
+.PHONY: help check-tools fmt test test-api-integration test-e2e-web cover cover-check lint install-goimports-reviser install-swag swagger swagger-check \
 	build-all build-cli build-web build-issue2md build-issue2mdweb \
 	install-cli install-web \
 	run-cli run-web run-issue2md run-issue2mdweb ci clean web docker-build
@@ -27,12 +29,22 @@ help: ## Show available targets
 check-tools: ## Check required and optional tools
 	@command -v $(GO) >/dev/null || { echo "missing tool: $(GO)"; exit 1; }
 	@command -v gofmt >/dev/null || { echo "missing tool: gofmt"; exit 1; }
+	@command -v $(GOIMPORTS_REVISER) >/dev/null || echo "optional tool missing: $(GOIMPORTS_REVISER) (required for make fmt)"
 	@command -v $(GOLANGCI_LINT) >/dev/null || echo "optional tool missing: $(GOLANGCI_LINT) (required for make lint)"
 	@command -v $(SWAG) >/dev/null || echo "optional tool missing: $(SWAG) (required for make swagger)"
 
-fmt: ## Format all tracked Go files
+fmt: ## Format all tracked Go files with gofmt + goimports-reviser
+	@command -v $(GOIMPORTS_REVISER) >/dev/null || { echo "missing tool: $(GOIMPORTS_REVISER)"; exit 1; }
 	@files=$$(git ls-files '*.go' | while IFS= read -r f; do [ -f "$$f" ] && printf "%s " "$$f"; done); \
-	if [ -n "$$files" ]; then gofmt -w $$files; else echo "no tracked Go files"; fi
+	if [ -n "$$files" ]; then \
+		gofmt -w $$files; \
+		$(GOIMPORTS_REVISER) -rm-unused -set-alias -format ./...; \
+	else \
+		echo "no tracked Go files"; \
+	fi
+
+install-goimports-reviser: ## Install goimports-reviser
+	$(GO) install $(GOIMPORTS_REVISER_INSTALL)
 
 test: ## Run all tests
 	GOCACHE=$(GOCACHE_DIR) $(GO) test ./...
