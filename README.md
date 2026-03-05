@@ -10,12 +10,29 @@ Language:
 - English (primary): `README.md`
 - Chinese: [README.zh-CN.md](README.zh-CN.md)
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Architecture and Data Flow](#architecture-and-data-flow)
+- [Common Commands](#common-commands)
+- [Configuration and Environment](#configuration-and-environment)
+- [Web API Example](#web-api-example)
+- [Testing and Quality](#testing-and-quality)
+- [Troubleshooting](#troubleshooting)
+- [Docker](#docker)
+- [Documentation Maintenance](#documentation-maintenance)
+- [Governance Files](#governance-files)
+
+<a id="overview"></a>
 ## Overview
 
 - Project type: `CLI tool + backend web service` (dual entrypoints).
 - Go version: `go 1.25.7` (from `go.mod`).
 - Module path: `github.com/johnqtcg/issue2md`.
 
+<a id="quick-start"></a>
 ## Quick Start
 
 ### Prerequisites
@@ -28,25 +45,20 @@ Language:
 
 ### Command Verifiability
 
-`Verified` below means executed in this agent session on `2026-03-04`.
-
-Verified in this session:
+Before running quality/build commands locally, install required tools and run:
 
 ```bash
 make help
-make fmt
-make test
-make lint
-make cover-check COVER_MIN=80
+make ci COVER_MIN=80
 make build-cli
 make web
 make swagger-check
 ./bin/issue2md --stdout https://github.com/github/spec-kit/issues/75
 ```
 
-Local note:
-- `make docker-build` failed locally in this session because Docker daemon was unreachable (`Cannot connect to the Docker daemon`).
-- Docker build validation is enforced in GitHub Actions on Linux runner (`docker-build` job).
+Verification policy:
+- Run commands in your own environment and treat output as the source of truth.
+- CI (`.github/workflows/ci.yml`) enforces the required gates on Linux runners.
 
 ### Build Locally
 
@@ -91,6 +103,7 @@ ISSUE2MD_WEB_ADDR=127.0.0.1:18080 ./bin/issue2mdweb
 ISSUE2MD_WEB_WRITE_TIMEOUT=90s ./bin/issue2mdweb
 ```
 
+<a id="project-structure"></a>
 ## Project Structure
 
 ```text
@@ -114,6 +127,7 @@ ISSUE2MD_WEB_WRITE_TIMEOUT=90s ./bin/issue2mdweb
 └── Dockerfile
 ```
 
+<a id="architecture-and-data-flow"></a>
 ## Architecture and Data Flow
 
 CLI path:
@@ -128,25 +142,26 @@ Web path:
 cmd/issue2mdweb -> internal/webapp -> internal/parser -> internal/github -> internal/converter -> HTTP response
 ```
 
+<a id="common-commands"></a>
 ## Common Commands
 
 Command source of truth: root `Makefile`.
 
 | Command | Purpose | Status |
 |---|---|---|
-| `make help` | List make targets | Verified (local session) |
-| `make fmt` | Format Go code with `gofmt` + `goimports-reviser` | Defined in Makefile + CI |
-| `make test` | Run all tests | Verified (local session) |
-| `make lint` | Run `golangci-lint` | Verified (local session) |
-| `make cover-check COVER_MIN=80` | Coverage gate | Verified (local session) |
-| `make build-cli` | Build CLI binary | Verified (local session) |
-| `make web` | Build Web binary | Verified (local session) |
-| `make swagger-check` | Regenerate and verify OpenAPI artifacts | Verified (local session) |
-| `./bin/issue2md --stdout <github-url>` | Real GitHub conversion | Verified (local session; requires `GITHUB_TOKEN`) |
-| `make test-api-integration` | API integration tests | Defined in Makefile + CI |
-| `make test-e2e-web` | Web E2E tests | Defined in Makefile + CI |
-| `make docker-build` | Build Docker image | Defined in Makefile + CI (Linux runner) |
+| `make help` | List make targets | Makefile |
+| `make fmt` | Format Go code with `gofmt` + `goimports-reviser` | Makefile + CI gate |
+| `make ci COVER_MIN=80` | Required CI-equivalent local gate (`fmt-check` + coverage + lint + build) | Makefile + CI |
+| `make test` | Run all tests | Makefile |
+| `make build-cli` | Build CLI binary | Makefile |
+| `make web` | Build Web binary | Makefile |
+| `make swagger-check` | Regenerate and verify OpenAPI artifacts | Makefile |
+| `./bin/issue2md --stdout <github-url>` | Real GitHub conversion | Requires `GITHUB_TOKEN` |
+| `make ci-api-integration` | API integration gate equivalent | Makefile + CI |
+| `make ci-e2e-web` | Web E2E gate equivalent | Makefile + CI (`push`/`schedule`) |
+| `make docker-build` | Build Docker image | Makefile + CI (Linux runner) |
 
+<a id="configuration-and-environment"></a>
 ## Configuration and Environment
 
 ### Runtime Environment Variables
@@ -179,6 +194,7 @@ Default output filename pattern (`internal/cli/output.go`):
 <owner>-<repo>-<issue|pr|discussion>-<number>.md
 ```
 
+<a id="web-api-example"></a>
 ## Web API Example
 
 Routes:
@@ -197,22 +213,60 @@ curl -sS -X POST http://127.0.0.1:8080/convert \
   --data-urlencode 'url=https://github.com/<owner>/<repo>/issues/1'
 ```
 
+<a id="testing-and-quality"></a>
 ## Testing and Quality
 
-Local quality gates:
-- `make fmt`
-- `make test`
-- `make lint`
-- `make cover-check COVER_MIN=80` (session result: `81.5%`)
+Local required gate:
+- `make ci COVER_MIN=80`
+
+Additional local checks:
+- `make ci-api-integration`
+- `make ci-e2e-web` (opt-in, same as CI e2e job gate behavior)
 
 CI workflow (`.github/workflows/ci.yml`):
-- `ci`: `fmt` (gofmt + goimports-reviser, diff check) + `cover-check` + `lint` + `build-all`
+- `ci`: `make ci COVER_MIN=80` (`fmt-check` + `cover-check` + `lint` + `build-all`)
 - `docker-build`: Docker build validation (web default + CLI variant)
-- `api-integration`: `make test-api-integration`
-- `e2e-web`: `make test-e2e-web` (push/schedule)
+- `api-integration`: `make ci-api-integration`
+- `e2e-web`: `make ci-e2e-web` (push/schedule)
 - `govulncheck`: dependency vulnerability scan
 - `fieldalignment`: struct field alignment check
 
+<a id="troubleshooting"></a>
+## Troubleshooting
+
+### GitHub token and permissions
+
+- Symptom: conversion fails with GitHub auth/permission errors.
+- Checks:
+  - Confirm `GITHUB_TOKEN` is set (or pass `--token`).
+  - Confirm the token can read the target repo/discussion.
+  - For fine-grained tokens, ensure repository access is explicitly granted.
+
+### Docker daemon unavailable
+
+- Symptom: `make docker-build` fails with daemon connection errors.
+- Checks:
+  - Start Docker Desktop or Docker daemon.
+  - Run `docker info` and confirm it returns successfully.
+  - If local Docker is unavailable, rely on CI `docker-build` job for validation.
+
+### Slow upstream or timeout issues on `/convert`
+
+- Symptom: web conversion fails on slow upstream fetch/summarization paths.
+- Checks:
+  - Increase `ISSUE2MD_WEB_WRITE_TIMEOUT` (for example `120s`, `180s`) based on your SLA.
+  - Verify upstream network reachability and API latency.
+  - Re-run with a known small public issue URL to isolate environment latency.
+
+### CI formatting gate fails (`fmt-check`)
+
+- Symptom: CI reports formatting diff and blocks merge.
+- Fix:
+  - Run `make fmt`.
+  - Commit formatting changes.
+  - Re-run `make ci COVER_MIN=80` locally before pushing.
+
+<a id="docker"></a>
 ## Docker
 
 These commands are defined by `Dockerfile` and `Makefile`:
@@ -227,6 +281,7 @@ docker run --rm -p 8080:8080 \
 
 `Dockerfile` defaults to `APP=issue2mdweb`. Use `--build-arg APP=issue2md` for CLI image.
 
+<a id="documentation-maintenance"></a>
 ## Documentation Maintenance
 
 Update this README when these repository changes happen:
@@ -241,6 +296,7 @@ Update this README when these repository changes happen:
 | API route changed | Web API Example |
 | Go version changed | Badges, Quick Start prerequisites |
 
+<a id="governance-files"></a>
 ## Governance Files
 
 - `LICENSE`: present (`MIT`) -> [LICENSE](LICENSE)
