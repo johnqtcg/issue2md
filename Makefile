@@ -13,15 +13,16 @@ GOLANGCI_LINT_CACHE_DIR ?= /tmp/golangci-lint-cache
 GOIMPORTS_REVISER ?= goimports-reviser
 GOIMPORTS_REVISER_INSTALL ?= github.com/incu6us/goimports-reviser/v3@v3.9.0
 SWAG ?= swag
-SWAG_INSTALL ?= github.com/swaggo/swag/cmd/swag@latest
+SWAG_INSTALL ?= github.com/swaggo/swag/cmd/swag@v1.16.6
 SWAG_DIR ?= cmd/issue2mdweb
 SWAG_ENTRY ?= main.go
 SWAG_OUTPUT ?= docs
 
-.PHONY: help check-tools fmt test test-api-integration test-e2e-web cover cover-check lint install-goimports-reviser install-swag swagger swagger-check \
+.PHONY: help check-tools fmt fmt-check test test-api-integration test-e2e-web cover cover-check lint install-goimports-reviser install-swag swagger swagger-check \
+	ci ci-core ci-api-integration ci-e2e-web ci-all \
 	build-all build-cli build-web build-issue2md build-issue2mdweb \
 	install-cli install-web \
-	run-cli run-web run-issue2md run-issue2mdweb ci clean web docker-build
+	run-cli run-web run-issue2md run-issue2mdweb clean web docker-build
 
 help: ## Show available targets
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_.-]+:.*##/ {printf "  %-22s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -33,14 +34,27 @@ check-tools: ## Check required and optional tools
 	@command -v $(GOLANGCI_LINT) >/dev/null || echo "optional tool missing: $(GOLANGCI_LINT) (required for make lint)"
 	@command -v $(SWAG) >/dev/null || echo "optional tool missing: $(SWAG) (required for make swagger)"
 
-fmt: ## Format all tracked Go files with gofmt + goimports-reviser
+fmt: ## Format all Go files (tracked + untracked) with gofmt + goimports-reviser
 	@command -v $(GOIMPORTS_REVISER) >/dev/null || { echo "missing tool: $(GOIMPORTS_REVISER)"; exit 1; }
-	@files=$$(git ls-files '*.go' | while IFS= read -r f; do [ -f "$$f" ] && printf "%s " "$$f"; done); \
-	if [ -n "$$files" ]; then \
-		gofmt -w $$files; \
+	@file_count=$$(find . -type f -name '*.go' \
+		-not -path './.git/*' \
+		-not -path './vendor/*' \
+		-not -path './bin/*' | wc -l | tr -d ' '); \
+	if [ "$$file_count" -gt 0 ]; then \
+		find . -type f -name '*.go' \
+			-not -path './.git/*' \
+			-not -path './vendor/*' \
+			-not -path './bin/*' -print0 | xargs -0 gofmt -w; \
 		$(GOIMPORTS_REVISER) -rm-unused -format ./...; \
 	else \
-		echo "no tracked Go files"; \
+		echo "no Go files"; \
+	fi
+
+fmt-check: fmt ## In CI, fail if formatting changes are required
+	@if [ "$${CI:-}" = "true" ]; then \
+		git diff --exit-code || (echo "code is not formatted; run 'make fmt' and commit changes" && exit 1); \
+	else \
+		echo "CI env not detected; skip formatting diff check"; \
 	fi
 
 install-goimports-reviser: ## Install goimports-reviser
@@ -113,7 +127,15 @@ run-issue2md: ## Run cmd/issue2md (pass ARGS='...')
 run-issue2mdweb: ## Run cmd/issue2mdweb
 	$(GO) run ./cmd/issue2mdweb
 
-ci: fmt lint test test-api-integration test-e2e-web ## Local CI parity checks
+ci: fmt-check ci-core ## Local/CI required gate parity checks (matches workflow ci job)
+
+ci-core: cover-check lint build-all ## Run coverage gate, lint, build (workflow ci job)
+
+ci-api-integration: test-api-integration ## Local parity with workflow api-integration job
+
+ci-e2e-web: test-e2e-web ## Local parity with workflow e2e-web job
+
+ci-all: ci-core ci-api-integration ci-e2e-web ## Run all local CI parity checks
 
 clean: ## Remove build and coverage artifacts
 	rm -rf $(BIN_DIR) $(COVER_FILE) $(COVER_HTML)
