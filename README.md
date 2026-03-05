@@ -21,6 +21,7 @@ Language:
 ### Prerequisites
 
 - Go `>= 1.25` (current: `1.25.7`)
+- `goimports-reviser` for `make fmt`
 - `golangci-lint` for `make lint`
 - `swag` for `make swagger` / `make swagger-check`
 - Docker for `make docker-build`
@@ -33,6 +34,7 @@ Verified in this session:
 
 ```bash
 make help
+make fmt
 make test
 make lint
 make cover-check COVER_MIN=80
@@ -133,6 +135,7 @@ Command source of truth: root `Makefile`.
 | Command | Purpose | Status |
 |---|---|---|
 | `make help` | List make targets | Verified (local session) |
+| `make fmt` | Format Go code with `gofmt` + `goimports-reviser` | Defined in Makefile + CI |
 | `make test` | Run all tests | Verified (local session) |
 | `make lint` | Run `golangci-lint` | Verified (local session) |
 | `make cover-check COVER_MIN=80` | Coverage gate | Verified (local session) |
@@ -197,12 +200,13 @@ curl -sS -X POST http://127.0.0.1:8080/convert \
 ## Testing and Quality
 
 Local quality gates:
+- `make fmt`
 - `make test`
 - `make lint`
 - `make cover-check COVER_MIN=80` (session result: `81.5%`)
 
 CI workflow (`.github/workflows/ci.yml`):
-- `ci`: `cover-check` + `lint` + `build-all`
+- `ci`: `fmt` (gofmt + goimports-reviser, diff check) + `cover-check` + `lint` + `build-all`
 - `docker-build`: Docker build validation (web default + CLI variant)
 - `api-integration`: `make test-api-integration`
 - `e2e-web`: `make test-e2e-web` (push/schedule)

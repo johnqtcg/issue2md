@@ -18,6 +18,7 @@
 ### 前置条件
 
 - Go `>= 1.25`（`go.mod` 当前为 `1.25.7`）
+- `goimports-reviser`（`make fmt` 需要）
 - `golangci-lint`（`make lint` 需要）
 - `swag`（`make swagger` / `make swagger-check` 需要）
 - Docker（`make docker-build` 需要）
@@ -30,6 +31,7 @@
 
 ```bash
 make help
+make fmt
 make test
 make lint
 make cover-check COVER_MIN=80
@@ -127,6 +129,7 @@ cmd/issue2mdweb -> internal/webapp -> internal/parser -> internal/github -> inte
 | 命令 | 用途 | 状态 |
 |---|---|---|
 | `make help` | 查看所有目标 | Verified（local session） |
+| `make fmt` | 使用 `gofmt` + `goimports-reviser` 格式化 Go 代码 | Defined in Makefile + CI |
 | `make test` | 运行全部测试 | Verified（local session） |
 | `make lint` | 执行 `golangci-lint` | Verified（local session） |
 | `make cover-check COVER_MIN=80` | 覆盖率门禁 | Verified（local session） |
@@ -194,12 +197,13 @@ curl -sS -X POST http://127.0.0.1:8080/convert \
 ### 本地质量门禁
 
 - 单元/集成测试：`make test`
+- 代码格式化：`make fmt`
 - 静态检查：`make lint`
 - 覆盖率门禁：`make cover-check COVER_MIN=80`（当前环境结果：`81.5%`）
 
 ### CI 工作流（`.github/workflows/ci.yml`）
 
-- `ci`: `cover-check` + `lint` + `build-all`
+- `ci`: `fmt`（gofmt + goimports-reviser 并校验无 diff）+ `cover-check` + `lint` + `build-all`
 - `docker-build`: Docker 镜像构建校验（默认 web 入口 + CLI 入口）
 - `api-integration`: `make test-api-integration`
 - `e2e-web`: `make test-e2e-web`（仅 `push` 或定时）

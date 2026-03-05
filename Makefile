@@ -38,7 +38,7 @@ fmt: ## Format all tracked Go files with gofmt + goimports-reviser
 	@files=$$(git ls-files '*.go' | while IFS= read -r f; do [ -f "$$f" ] && printf "%s " "$$f"; done); \
 	if [ -n "$$files" ]; then \
 		gofmt -w $$files; \
-		$(GOIMPORTS_REVISER) -rm-unused -set-alias -format ./...; \
+		$(GOIMPORTS_REVISER) -rm-unused -format ./...; \
 	else \
 		echo "no tracked Go files"; \
 	fi
