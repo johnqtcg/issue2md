@@ -4,104 +4,124 @@
 ![Go Version](https://img.shields.io/badge/go-1.25.7-00ADD8)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-Convert GitHub `Issue` / `Pull Request` / `Discussion` URLs into Markdown with both CLI and Web entrypoints.
+Turn GitHub `Issue`, `Pull Request`, and `Discussion` URLs into clean Markdown for archiving, sharing, and downstream automation.
 
 Language:
 - English (primary): `README.md`
 - Chinese: [README.zh-CN.md](README.zh-CN.md)
 
-## Table of Contents
+## Contents
 
 - [Overview](#overview)
+- [Highlights](#highlights)
+- [Install](#install)
 - [Quick Start](#quick-start)
-- [Project Structure](#project-structure)
-- [Architecture and Data Flow](#architecture-and-data-flow)
-- [Common Commands](#common-commands)
+- [End-to-End Example](#end-to-end-example)
 - [Configuration and Environment](#configuration-and-environment)
-- [Web API Example](#web-api-example)
-- [Testing and Quality](#testing-and-quality)
-- [Troubleshooting](#troubleshooting)
-- [Docker](#docker)
-- [Documentation Maintenance](#documentation-maintenance)
-- [Governance Files](#governance-files)
+- [Common Commands](#common-commands)
+- [Project Docs](#project-docs)
 
 <a id="overview"></a>
 ## Overview
 
-- Project type: `CLI tool + backend web service` (dual entrypoints).
+- Dual entrypoints: `CLI tool + backend web service`.
 - Go version: `go 1.25.7` (from `go.mod`).
 - Module path: `github.com/johnqtcg/issue2md`.
+
+<a id="highlights"></a>
+## Highlights
+
+- One tool, two entrypoints: use the CLI for local export or the Web service for browser and API-driven workflows.
+- Optional AI summary: when `OPENAI_API_KEY` is configured, output can include a structured `## AI Summary` section with summary, decisions, and action items.
+- Structured output by default: rendered markdown preserves metadata, original description, discussion thread, and source reference URL.
+
+<a id="install"></a>
+## Install
+
+Directly with Go:
+
+```bash
+go install github.com/johnqtcg/issue2md/cmd/issue2md@latest
+go install github.com/johnqtcg/issue2md/cmd/issue2mdweb@latest
+```
+
+From a local clone:
+- `make install-cli`
+- `make install-web`
 
 <a id="quick-start"></a>
 ## Quick Start
 
-### Prerequisites
-
-- Go `>= 1.25` (current: `1.25.7`)
-- `goimports-reviser` for `make fmt`
-- `golangci-lint` for `make lint`
-- `swag` for `make swagger` / `make swagger-check`
-- Docker for `make docker-build`
-
-### Command Verifiability
-
-Before running quality/build commands locally, install required tools and run:
+### 30-Second CLI
 
 ```bash
-make help
-make ci COVER_MIN=80
-make build-cli
-make web
-make swagger-check
-./bin/issue2md --stdout https://github.com/github/spec-kit/issues/75
+export GITHUB_TOKEN=<your_github_pat>
+issue2md --stdout https://github.com/github/spec-kit/issues/75
 ```
 
-Verification policy:
-- Run commands in your own environment and treat output as the source of truth.
-- CI (`.github/workflows/ci.yml`) enforces the required gates on Linux runners.
-
-### Build Locally
+### 30-Second Web
 
 ```bash
-make build-cli
-make web
+export GITHUB_TOKEN=<your_github_pat>
+ISSUE2MD_WEB_ADDR=127.0.0.1:18080 issue2mdweb
 ```
 
-Generated binaries:
-- `bin/issue2md`
-- `bin/issue2mdweb`
-
-### Run CLI
-
-Single URL:
+Then call the HTTP endpoint:
 
 ```bash
-./bin/issue2md https://github.com/<owner>/<repo>/issues/<number>
+curl -sS -X POST http://127.0.0.1:18080/convert \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'url=https://github.com/github/spec-kit/issues/75'
 ```
 
-Batch mode (one URL per line):
+Notes:
+- Requires Go `>= 1.25` and an installed binary.
+- If you prefer local binaries, use `make build-cli` or `make web`.
+- Contributor checks remain in `Common Commands` and `Testing and Quality`.
+
+<a id="end-to-end-example"></a>
+## End-to-End Example
+
+Convert one issue URL and let the CLI choose the default output filename:
 
 ```bash
-./bin/issue2md --input-file urls.txt --output out
+issue2md https://github.com/github/spec-kit/issues/75
+# OK url=https://github.com/github/spec-kit/issues/75 type=issue output=github-spec-kit-issue-75.md
 ```
 
-### Run Web Service
+Default filenames follow:
 
-```bash
-./bin/issue2mdweb
+```text
+<owner>-<repo>-<issue|pr|discussion>-<number>.md
 ```
 
-Default listen address is `:8080`. Override with `ISSUE2MD_WEB_ADDR`:
+Generated markdown shape, excerpted from [`internal/converter/testdata/issue.golden.md`](internal/converter/testdata/issue.golden.md):
 
-```bash
-ISSUE2MD_WEB_ADDR=127.0.0.1:18080 ./bin/issue2mdweb
+```markdown
+---
+type: 'issue'
+title: 'Issue: Panic on nil config'
+number: 123
+---
+
+# Issue: Panic on nil config
+
+## Metadata
+- type: issue
+- number: 123
+- state: open
+
+## AI Summary
+
+### Summary
+The thread discusses root cause and fix.
+
+## Original Description
+
+App panics when config is nil.
 ```
 
-`/convert` write deadline can be tuned via `ISSUE2MD_WEB_WRITE_TIMEOUT` (Go duration format, default `120s`):
-
-```bash
-ISSUE2MD_WEB_WRITE_TIMEOUT=90s ./bin/issue2mdweb
-```
+The generated file always includes metadata, original description, thread content, and references. The `## AI Summary` section appears only when `OPENAI_API_KEY` is configured.
 
 <a id="project-structure"></a>
 ## Project Structure
@@ -155,6 +175,8 @@ Command source of truth: root `Makefile`.
 | `make test` | Run all tests | Makefile |
 | `make build-cli` | Build CLI binary | Makefile |
 | `make web` | Build Web binary | Makefile |
+| `make install-cli` | Install CLI into `GOBIN` / `GOPATH/bin` | Makefile |
+| `make install-web` | Install Web binary into `GOBIN` / `GOPATH/bin` | Makefile |
 | `make swagger-check` | Regenerate and verify OpenAPI artifacts | Makefile |
 | `./bin/issue2md --stdout <github-url>` | Real GitHub conversion | Requires `GITHUB_TOKEN` |
 | `make ci-api-integration` | API integration gate equivalent | Makefile + CI |
@@ -169,11 +191,13 @@ Command source of truth: root `Makefile`.
 | Variable | Purpose | Required |
 |---|---|---|
 | `GITHUB_TOKEN` | GitHub token (used when `--token` is not passed) | Recommended |
-| `OPENAI_API_KEY` | Enable AI summary | Optional |
+| `OPENAI_API_KEY` | Enable the `## AI Summary` section | Optional |
 | `ISSUE2MD_AI_BASE_URL` | Override AI base URL | Optional |
 | `ISSUE2MD_AI_MODEL` | Override AI model | Optional |
 | `ISSUE2MD_WEB_ADDR` | Web listen address (default `:8080`) | Optional |
 | `ISSUE2MD_WEB_WRITE_TIMEOUT` | Web response write timeout for request handling (Go duration, default `120s`) | Optional |
+
+If `OPENAI_API_KEY` is unset, conversion still succeeds and markdown is rendered without AI summary content.
 
 ### CLI Flags (`internal/config/loader.go`)
 
@@ -186,7 +210,7 @@ Command source of truth: root `Makefile`.
 | `--stdout` | Write markdown to stdout | Conflicts with `--input-file` |
 | `--force` | Overwrite existing output files | - |
 | `--token` | GitHub token (higher priority than `GITHUB_TOKEN`) | - |
-| `--lang` | Summary language override | - |
+| `--lang` | Summary language override | Only used when AI summary is enabled via `OPENAI_API_KEY` |
 
 Default output filename pattern (`internal/cli/output.go`):
 
@@ -281,32 +305,20 @@ docker run --rm -p 8080:8080 \
 
 `Dockerfile` defaults to `APP=issue2mdweb`. Use `--build-arg APP=issue2md` for CLI image.
 
-<a id="documentation-maintenance"></a>
-## Documentation Maintenance
+<a id="project-docs"></a>
+## Project Docs
 
-Update this README when these repository changes happen:
-
-| Repository Change | README Sections to Update |
-|---|---|
-| New `cmd/*/main.go` entrypoint | Overview, Quick Start, Structure, Commands |
-| Added/changed environment variables | Configuration and Environment |
-| Makefile target added/renamed | Common Commands |
-| CI workflow changed | Badges, Testing and Quality |
-| New module directory (`internal/*`/`tests/*`) | Structure, Architecture |
-| API route changed | Web API Example |
-| Go version changed | Badges, Quick Start prerequisites |
-
-<a id="governance-files"></a>
-## Governance Files
-
-- `LICENSE`: present (`MIT`) -> [LICENSE](LICENSE)
-- `CONTRIBUTING.md`: present -> [CONTRIBUTING.md](CONTRIBUTING.md)
-- `CODE_OF_CONDUCT.md`: present -> [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-- `SECURITY.md`: present -> [SECURITY.md](SECURITY.md)
-- `CHANGELOG.md`: present -> [CHANGELOG.md](CHANGELOG.md)
+Core project docs:
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [SECURITY.md](SECURITY.md)
+- [CHANGELOG.md](CHANGELOG.md)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [LICENSE](LICENSE)
 
 Chinese translations:
 - [README.zh-CN.md](README.zh-CN.md)
 - [CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md)
 - [CODE_OF_CONDUCT.zh-CN.md](CODE_OF_CONDUCT.zh-CN.md)
 - [SECURITY.zh-CN.md](SECURITY.zh-CN.md)
+
+Update this README when entrypoints, environment variables, Make targets, API routes, or Go version change.

@@ -4,102 +4,120 @@
 ![Go Version](https://img.shields.io/badge/go-1.25.7-00ADD8)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-将 GitHub `Issue` / `Pull Request` / `Discussion` URL 转换为 Markdown 的 Go 工具，提供 CLI 与 Web 两种入口。
+把 GitHub `Issue`、`Pull Request` 和 `Discussion` URL 转成干净、可归档、可分享、可继续处理的 Markdown。
 
 ## 目录
 
 - [项目概览](#cn-overview)
+- [功能亮点](#cn-highlights)
+- [安装](#cn-install)
 - [快速开始](#cn-quick-start)
-- [项目结构](#cn-project-structure)
-- [架构与数据流](#cn-architecture-and-flow)
-- [常用命令](#cn-common-commands)
+- [端到端示例](#cn-end-to-end-example)
 - [配置与环境变量](#cn-configuration-and-env)
-- [API 示例（Web）](#cn-web-api-example)
-- [测试与质量检查](#cn-testing-and-quality)
-- [故障排查（Troubleshooting）](#cn-troubleshooting)
-- [部署与运行（Docker）](#cn-docker)
-- [文档维护说明](#cn-documentation-maintenance)
-- [治理文件状态](#cn-governance-files)
+- [常用命令](#cn-common-commands)
+- [项目文档](#cn-project-docs)
 
 <a id="cn-overview"></a>
 ## 项目概览
 
-- 语言策略：中文说明 + 英文技术术语（命令、路径、环境变量名保持英文）。
-- 项目类型（routing）：`CLI tool + backend web service`（双入口仓库）。
+- 双入口形态：`CLI tool + backend web service`。
 - Go 版本：`go 1.25.7`（见 `go.mod`）。
 - 模块路径：`github.com/johnqtcg/issue2md`。
+
+<a id="cn-highlights"></a>
+## 功能亮点
+
+- 一个工具，两种入口：本地导出可用 CLI，浏览器或接口工作流可用 Web 服务。
+- 可选 AI 摘要：配置 `OPENAI_API_KEY` 后，输出可包含结构化的 `## AI Summary` 区块，带 summary、decisions 和 action items。
+- 默认结构化输出：生成的 Markdown 会保留 metadata、original description、discussion thread 和原始 URL 引用。
+
+<a id="cn-install"></a>
+## 安装
+
+直接通过 Go 安装：
+
+```bash
+go install github.com/johnqtcg/issue2md/cmd/issue2md@latest
+go install github.com/johnqtcg/issue2md/cmd/issue2mdweb@latest
+```
+
+如果你是从本地仓库工作：
+- `make install-cli`
+- `make install-web`
 
 <a id="cn-quick-start"></a>
 ## 快速开始
 
-### 前置条件
-
-- Go `>= 1.25`（`go.mod` 当前为 `1.25.7`）
-- `goimports-reviser`（`make fmt` 需要）
-- `golangci-lint`（`make lint` 需要）
-- `swag`（`make swagger` / `make swagger-check` 需要）
-- Docker（`make docker-build` 需要）
-
-### 命令可验证性（Command Verifiability Gate）
-
-在本地执行质量/构建命令前，请先安装依赖工具并运行：
+### 30 秒 CLI
 
 ```bash
-make help
-make ci COVER_MIN=80
-make build-cli
-make web
-make swagger-check
-./bin/issue2md --stdout https://github.com/github/spec-kit/issues/75
+export GITHUB_TOKEN=<your_github_pat>
+issue2md --stdout https://github.com/github/spec-kit/issues/75
 ```
 
-验证策略：
-- 以你本地实际执行结果为准。
-- CI（`.github/workflows/ci.yml`）会在 Linux runner 上执行并校验必需门禁。
-
-### 本地构建
+### 30 秒 Web
 
 ```bash
-make build-cli
-make web
+export GITHUB_TOKEN=<your_github_pat>
+ISSUE2MD_WEB_ADDR=127.0.0.1:18080 issue2mdweb
 ```
 
-生成二进制：
-
-- `bin/issue2md`
-- `bin/issue2mdweb`
-
-### 运行 CLI
-
-单条 URL：
+然后调用 HTTP 接口：
 
 ```bash
-./bin/issue2md https://github.com/<owner>/<repo>/issues/<number>
+curl -sS -X POST http://127.0.0.1:18080/convert \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'url=https://github.com/github/spec-kit/issues/75'
 ```
 
-批量 URL（每行一个 URL）：
+说明：
+- 需要 Go `>= 1.25` 和已安装的可执行文件。
+- 如果你更偏向本地二进制，可使用 `make build-cli` 或 `make web`。
+- 贡献者门禁命令保留在后面的 `常用命令` 和 `测试与质量检查` 章节。
+
+<a id="cn-end-to-end-example"></a>
+## 端到端示例
+
+把一个 issue URL 转成 Markdown，并让 CLI 自动生成默认文件名：
 
 ```bash
-./bin/issue2md --input-file urls.txt --output out
+issue2md https://github.com/github/spec-kit/issues/75
+# OK url=https://github.com/github/spec-kit/issues/75 type=issue output=github-spec-kit-issue-75.md
 ```
 
-### 运行 Web 服务
+默认文件名规则：
 
-```bash
-./bin/issue2mdweb
+```text
+<owner>-<repo>-<issue|pr|discussion>-<number>.md
 ```
 
-默认监听地址为 `:8080`，可用 `ISSUE2MD_WEB_ADDR` 覆盖：
+生成文件的结构示例摘自 [`internal/converter/testdata/issue.golden.md`](internal/converter/testdata/issue.golden.md)：
 
-```bash
-ISSUE2MD_WEB_ADDR=127.0.0.1:18080 ./bin/issue2mdweb
+```markdown
+---
+type: 'issue'
+title: 'Issue: Panic on nil config'
+number: 123
+---
+
+# Issue: Panic on nil config
+
+## Metadata
+- type: issue
+- number: 123
+- state: open
+
+## AI Summary
+
+### Summary
+The thread discusses root cause and fix.
+
+## Original Description
+
+App panics when config is nil.
 ```
 
-`/convert` 的写超时可通过 `ISSUE2MD_WEB_WRITE_TIMEOUT` 调整（Go duration 格式，默认 `120s`）：
-
-```bash
-ISSUE2MD_WEB_WRITE_TIMEOUT=90s ./bin/issue2mdweb
-```
+最终生成的文件固定会包含 metadata、original description、thread content 和 references。只有在配置了 `OPENAI_API_KEY` 时，才会出现 `## AI Summary` 区块。
 
 <a id="cn-project-structure"></a>
 ## 项目结构
@@ -153,6 +171,8 @@ cmd/issue2mdweb -> internal/webapp -> internal/parser -> internal/github -> inte
 | `make test` | 运行全部测试 | Makefile |
 | `make build-cli` | 构建 CLI | Makefile |
 | `make web` | 构建 Web 二进制 | Makefile |
+| `make install-cli` | 将 CLI 安装到 `GOBIN` / `GOPATH/bin` | Makefile |
+| `make install-web` | 将 Web 二进制安装到 `GOBIN` / `GOPATH/bin` | Makefile |
 | `make swagger-check` | 重新生成并校验 OpenAPI 文档 | Makefile |
 | `./bin/issue2md --stdout <github-url>` | 真实 GitHub URL 转换 | 需要 `GITHUB_TOKEN` |
 | `make ci-api-integration` | API 集成门禁等价命令 | Makefile + CI |
@@ -167,11 +187,13 @@ cmd/issue2mdweb -> internal/webapp -> internal/parser -> internal/github -> inte
 | 变量名 | 用途 | 是否必需 |
 |---|---|---|
 | `GITHUB_TOKEN` | GitHub API token（`--token` 未传时读取） | 推荐 |
-| `OPENAI_API_KEY` | 启用 AI 摘要 | 可选 |
+| `OPENAI_API_KEY` | 启用 `## AI Summary` 区块 | 可选 |
 | `ISSUE2MD_AI_BASE_URL` | AI 接口 base URL 覆盖 | 可选 |
 | `ISSUE2MD_AI_MODEL` | AI 模型名覆盖 | 可选 |
 | `ISSUE2MD_WEB_ADDR` | Web 服务监听地址（默认 `:8080`） | 可选 |
 | `ISSUE2MD_WEB_WRITE_TIMEOUT` | Web 请求处理阶段的响应写超时（Go duration，默认 `120s`） | 可选 |
+
+如果未设置 `OPENAI_API_KEY`，转换仍会成功，只是输出中不会包含 AI 摘要内容。
 
 ### CLI flags（`internal/config/loader.go`）
 
@@ -184,7 +206,7 @@ cmd/issue2mdweb -> internal/webapp -> internal/parser -> internal/github -> inte
 | `--stdout` | 将 markdown 打印到 stdout | 与 `--input-file` 冲突 |
 | `--force` | 覆盖已存在输出文件 | - |
 | `--token` | GitHub token（优先级高于 `GITHUB_TOKEN`） | - |
-| `--lang` | AI 摘要语言 | - |
+| `--lang` | AI 摘要语言 | 仅在通过 `OPENAI_API_KEY` 启用 AI 摘要时生效 |
 
 默认文件名规则（`internal/cli/output.go`）：
 
@@ -280,28 +302,20 @@ docker run --rm -p 8080:8080 \
 
 `Dockerfile` 默认 `APP=issue2mdweb`，可通过 `--build-arg APP=issue2md` 构建 CLI 入口。
 
-<a id="cn-documentation-maintenance"></a>
-## 文档维护说明
+<a id="cn-project-docs"></a>
+## 项目文档
 
-以下变更发生时，应同步更新本 README：
+核心文档：
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [SECURITY.md](SECURITY.md)
+- [CHANGELOG.md](CHANGELOG.md)
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [LICENSE](LICENSE)
 
-| 仓库变更 | 需要更新的 README 部分 |
-|---|---|
-| 新增 `cmd/*/main.go` 入口 | 项目概览、快速开始、项目结构、常用命令 |
-| 新增或修改环境变量 | 配置与环境变量 |
-| Makefile target 新增/重命名 | 常用命令 |
-| CI workflow 变化 | 徽章、测试与质量检查 |
-| 新增模块目录（`internal/*`/`tests/*`） | 项目结构、架构与数据流 |
-| API 路由变更 | API 示例（Web） |
-| Go 版本变更 | 徽章、快速开始 |
+中文文档：
+- [README.zh-CN.md](README.zh-CN.md)
+- [CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md)
+- [CODE_OF_CONDUCT.zh-CN.md](CODE_OF_CONDUCT.zh-CN.md)
+- [SECURITY.zh-CN.md](SECURITY.zh-CN.md)
 
-维护建议：在提交前至少执行 `make ci COVER_MIN=80`，必要时补充执行 `make ci-api-integration` 与 `make ci-e2e-web`。
-
-<a id="cn-governance-files"></a>
-## 治理文件状态
-
-- `LICENSE`: present (`MIT`)
-- `CONTRIBUTING.md`: present (`./CONTRIBUTING.md`)
-- `CODE_OF_CONDUCT.md`: present (`./CODE_OF_CONDUCT.md`)
-- `SECURITY.md`: present (`./SECURITY.md`)
-- `CHANGELOG.md`: present -> (`./CHANGELOG.md`)
+当入口、环境变量、Make target、API 路由或 Go 版本变化时，应同步更新本 README。
