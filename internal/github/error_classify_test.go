@@ -15,6 +15,7 @@ func TestIsAuthError(t *testing.T) {
 		want bool
 	}{
 		{name: "401 is auth", err: NewStatusError(http.StatusUnauthorized, errors.New("bad credentials"), nil), want: true},
+		{name: "text 401 bad credentials is auth", err: errors.New("http status 401: bad credentials"), want: true},
 		{name: "403 forbidden is auth", err: NewStatusError(http.StatusForbidden, errors.New("forbidden"), nil), want: true},
 		{name: "403 rate limit header is not auth", err: NewStatusError(http.StatusForbidden, errors.New("forbidden"), http.Header{"X-RateLimit-Reset": []string{"1893456000"}}), want: false},
 		{name: "429 is not auth", err: NewStatusError(http.StatusTooManyRequests, errors.New("rate limit"), nil), want: false},

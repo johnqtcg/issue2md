@@ -14,10 +14,10 @@ import (
 type sleepFunc func(ctx context.Context, d time.Duration) error
 
 type statusError struct {
+	ResetAt    time.Time
 	Err        error
 	StatusCode int
 	RetryAfter time.Duration
-	ResetAt    time.Time
 }
 
 func (e *statusError) Error() string {

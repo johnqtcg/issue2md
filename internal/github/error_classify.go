@@ -46,5 +46,7 @@ func IsAuthError(err error) bool {
 
 	text := strings.ToLower(err.Error())
 	return strings.Contains(text, "unauthorized") ||
+		strings.Contains(text, "http status 401") ||
+		strings.Contains(text, "bad credentials") ||
 		strings.Contains(text, "forbidden")
 }

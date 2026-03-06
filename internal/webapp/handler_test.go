@@ -397,6 +397,7 @@ func TestFetchHTTPStatusFromError(t *testing.T) {
 		{name: "rate limit", err: gh.NewStatusError(http.StatusForbidden, errors.New("forbidden"), http.Header{"X-RateLimit-Reset": []string{"1893456000"}}), want: http.StatusTooManyRequests},
 		{name: "auth forbidden", err: gh.NewStatusError(http.StatusForbidden, errors.New("forbidden"), nil), want: http.StatusForbidden},
 		{name: "auth unauthorized", err: gh.NewStatusError(http.StatusUnauthorized, errors.New("bad credentials"), nil), want: http.StatusUnauthorized},
+		{name: "text 401 bad credentials", err: errors.New("http status 401: bad credentials"), want: http.StatusUnauthorized},
 		{name: "unknown upstream", err: errors.New("boom"), want: http.StatusBadGateway},
 	}
 
