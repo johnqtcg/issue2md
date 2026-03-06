@@ -101,6 +101,30 @@ func TestResolveSummaryLanguage(t *testing.T) {
 			want: "zh",
 		},
 		{
+			name:     "auto detect chinese ext a",
+			override: "",
+			data: func() string {
+				return "㐀扩展汉字"
+			},
+			want: "zh",
+		},
+		{
+			name:     "auto detect japanese",
+			override: "",
+			data: func() string {
+				return "これは日本語の議論です。"
+			},
+			want: "ja",
+		},
+		{
+			name:     "auto detect korean",
+			override: "",
+			data: func() string {
+				return "이것은 한국어 토론입니다."
+			},
+			want: "ko",
+		},
+		{
 			name:     "auto detect english fallback",
 			override: "",
 			data: func() string {

@@ -290,7 +290,7 @@ func TestNewHandlerConvertStatusMapping(t *testing.T) {
 			method:      http.MethodPost,
 			body:        url.Values{"url": []string{rawURL}}.Encode(),
 			contentType: "application/x-www-form-urlencoded",
-			fetchErr:    errors.New("http status 401: bad credentials"),
+			fetchErr:    gh.NewStatusError(http.StatusUnauthorized, errors.New("bad credentials"), nil),
 			wantStatus:  http.StatusUnauthorized,
 		},
 		{
@@ -298,7 +298,7 @@ func TestNewHandlerConvertStatusMapping(t *testing.T) {
 			method:      http.MethodPost,
 			body:        url.Values{"url": []string{rawURL}}.Encode(),
 			contentType: "application/x-www-form-urlencoded",
-			fetchErr:    errors.New("forbidden"),
+			fetchErr:    gh.NewStatusError(http.StatusForbidden, errors.New("forbidden"), nil),
 			wantStatus:  http.StatusForbidden,
 		},
 		{
@@ -306,7 +306,7 @@ func TestNewHandlerConvertStatusMapping(t *testing.T) {
 			method:      http.MethodPost,
 			body:        url.Values{"url": []string{rawURL}}.Encode(),
 			contentType: "application/x-www-form-urlencoded",
-			fetchErr:    errors.New("http status 403: API rate limit exceeded"),
+			fetchErr:    gh.NewStatusError(http.StatusForbidden, errors.New("forbidden"), http.Header{"Retry-After": []string{"5"}}),
 			wantStatus:  http.StatusTooManyRequests,
 		},
 		{
@@ -394,9 +394,9 @@ func TestFetchHTTPStatusFromError(t *testing.T) {
 	}{
 		{name: "nil", err: nil, want: http.StatusOK},
 		{name: "not found", err: gh.ErrResourceNotFound, want: http.StatusNotFound},
-		{name: "rate limit", err: errors.New("status 403: API rate limit exceeded"), want: http.StatusTooManyRequests},
-		{name: "auth forbidden", err: errors.New("forbidden"), want: http.StatusForbidden},
-		{name: "auth unauthorized", err: errors.New("status 401 unauthorized"), want: http.StatusUnauthorized},
+		{name: "rate limit", err: gh.NewStatusError(http.StatusForbidden, errors.New("forbidden"), http.Header{"X-RateLimit-Reset": []string{"1893456000"}}), want: http.StatusTooManyRequests},
+		{name: "auth forbidden", err: gh.NewStatusError(http.StatusForbidden, errors.New("forbidden"), nil), want: http.StatusForbidden},
+		{name: "auth unauthorized", err: gh.NewStatusError(http.StatusUnauthorized, errors.New("bad credentials"), nil), want: http.StatusUnauthorized},
 		{name: "unknown upstream", err: errors.New("boom"), want: http.StatusBadGateway},
 	}
 
@@ -444,8 +444,8 @@ func TestAuthHTTPStatus(t *testing.T) {
 		name string
 		want int
 	}{
+		{name: "typed forbidden", err: gh.NewStatusError(http.StatusForbidden, errors.New("forbidden"), nil), want: http.StatusForbidden},
 		{name: "forbidden text", err: errors.New("forbidden"), want: http.StatusForbidden},
-		{name: "status 403 text", err: errors.New("http status 403"), want: http.StatusForbidden},
 		{name: "fallback unauthorized", err: errors.New("bad credentials"), want: http.StatusUnauthorized},
 	}
 

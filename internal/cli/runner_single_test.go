@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -94,7 +95,7 @@ func TestAppRunSingleExitCodeMapping(t *testing.T) {
 		name     string
 		wantCode int
 	}{
-		{name: "auth error", fetchErr: errors.New("http status 401: bad credentials"), wantCode: ExitAuth},
+		{name: "auth error", fetchErr: gh.NewStatusError(http.StatusUnauthorized, errors.New("bad credentials"), nil), wantCode: ExitAuth},
 		{name: "output conflict", writeErr: ErrOutputConflict, wantCode: ExitOutputConflict},
 	}
 

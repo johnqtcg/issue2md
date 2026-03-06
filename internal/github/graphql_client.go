@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/netip"
-	"net/url"
 	"strings"
 	"time"
+
+	"github.com/johnqtcg/issue2md/internal/urlutil"
 )
 
 const (
@@ -130,10 +130,11 @@ func (c *graphQLClient) queryRaw(ctx context.Context, query string, variables ma
 
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 16*1024))
-		return nil, fmt.Errorf("graphql status error: %w", &statusError{
-			StatusCode: resp.StatusCode,
-			Err:        fmt.Errorf("%s", strings.TrimSpace(string(body))),
-		})
+		return nil, fmt.Errorf("graphql status error: %w", NewStatusError(
+			resp.StatusCode,
+			fmt.Errorf("%s", strings.TrimSpace(string(body))),
+			resp.Header,
+		))
 	}
 
 	var envelope graphQLResponse
@@ -159,39 +160,5 @@ func copyVariables(in map[string]any) map[string]any {
 }
 
 func resolveGraphQLEndpoint(raw string) (string, error) {
-	endpoint := strings.TrimSpace(raw)
-	if endpoint == "" {
-		endpoint = defaultGraphQLURL
-	}
-
-	parsed, err := url.Parse(endpoint)
-	if err != nil {
-		return "", fmt.Errorf("parse graphql endpoint %q: %w", endpoint, err)
-	}
-	if parsed.Scheme != "https" {
-		return "", fmt.Errorf("graphql endpoint must use https scheme")
-	}
-	if parsed.Hostname() == "" {
-		return "", fmt.Errorf("graphql endpoint host is empty")
-	}
-	if parsed.User != nil {
-		return "", fmt.Errorf("graphql endpoint must not include userinfo")
-	}
-	if isPrivateIPLiteral(parsed.Hostname()) {
-		return "", fmt.Errorf("graphql endpoint must not use private ip literal")
-	}
-	return parsed.String(), nil
-}
-
-func isPrivateIPLiteral(host string) bool {
-	addr, err := netip.ParseAddr(host)
-	if err != nil {
-		return false
-	}
-	return addr.IsPrivate() ||
-		addr.IsLoopback() ||
-		addr.IsLinkLocalUnicast() ||
-		addr.IsLinkLocalMulticast() ||
-		addr.IsMulticast() ||
-		addr.IsUnspecified()
+	return urlutil.ResolvePublicHTTPSURL(raw, defaultGraphQLURL, "graphql endpoint")
 }

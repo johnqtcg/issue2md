@@ -7,7 +7,9 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"testing"
+	"time"
 )
 
 func TestRESTClientAuthHeader(t *testing.T) {
@@ -86,5 +88,37 @@ func TestRESTClientWrapsStatusError(t *testing.T) {
 	}
 	if stErr.StatusCode != http.StatusTooManyRequests {
 		t.Fatalf("status code = %d, want %d", stErr.StatusCode, http.StatusTooManyRequests)
+	}
+}
+
+func TestRESTClientWrapsRateLimitHeaders(t *testing.T) {
+	t.Parallel()
+
+	resetAt := time.Now().Add(30 * time.Second).Unix()
+	clientHTTP := newTestHTTPClient(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusForbidden,
+			Header: http.Header{
+				"Content-Type":      []string{"application/json"},
+				"X-RateLimit-Reset": []string{strconv.FormatInt(resetAt, 10)},
+			},
+			Body: io.NopCloser(bytes.NewReader([]byte(`{"message":"forbidden"}`))),
+		}, nil
+	})
+
+	client, err := newRESTClient(Config{
+		HTTPClient:  clientHTTP,
+		RESTBaseURL: "https://api.test/",
+	})
+	if err != nil {
+		t.Fatalf("newRESTClient error = %v, want nil", err)
+	}
+
+	_, err = client.getIssue(context.Background(), "octo", "repo", 1)
+	if err == nil {
+		t.Fatal("getIssue error = nil, want error")
+	}
+	if !IsRateLimitError(err) {
+		t.Fatalf("IsRateLimitError(%v) = false, want true", err)
 	}
 }

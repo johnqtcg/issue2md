@@ -35,8 +35,6 @@ func NewLoader() Loader {
 type flagLoader struct{}
 
 func (l *flagLoader) Load(args []string) (Config, error) {
-	_ = l
-
 	cfg := Config{}
 	flags := flag.NewFlagSet("issue2md", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)

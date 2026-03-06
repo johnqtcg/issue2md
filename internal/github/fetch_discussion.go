@@ -77,25 +77,11 @@ func (f *fetcher) fetchDiscussion(ctx context.Context, ref ResourceRef, opts Fet
 }
 
 func discussionPageQuery(includeComments bool) string {
+	queryArgs := "($owner:String!, $repo:String!, $number:Int!)"
+	commentsBlock := ""
 	if includeComments {
-		return `query DiscussionPage($owner:String!, $repo:String!, $number:Int!, $after:String) {
-  repository(owner:$owner, name:$repo) {
-    discussion(number:$number) {
-      number
-      title
-      body
-      url
-      createdAt
-      updatedAt
-      closed
-      author { login }
-      category { name }
-      isAnswered
-      answer {
-        id
-        author { login }
-      }
-      reactions { plusOne heart total }
+		queryArgs = "($owner:String!, $repo:String!, $number:Int!, $after:String)"
+		commentsBlock = `
       comments(first:50, after:$after) {
         nodes {
           id
@@ -119,12 +105,10 @@ func discussionPageQuery(includeComments bool) string {
           }
         }
         pageInfo { hasNextPage endCursor }
-	      }
-	    }
-	  }
-}`
+      }`
 	}
-	return `query DiscussionPage($owner:String!, $repo:String!, $number:Int!) {
+
+	return fmt.Sprintf(`query DiscussionPage%s {
   repository(owner:$owner, name:$repo) {
     discussion(number:$number) {
       number
@@ -142,9 +126,10 @@ func discussionPageQuery(includeComments bool) string {
         author { login }
       }
       reactions { plusOne heart total }
+%s
     }
   }
-}`
+}`, queryArgs, commentsBlock)
 }
 
 func (f *fetcher) mapDiscussionComment(ctx context.Context, in discussionCommentPayload) (CommentNode, error) {

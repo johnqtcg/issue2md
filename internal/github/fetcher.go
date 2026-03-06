@@ -12,40 +12,34 @@ type fetcher struct {
 }
 
 func (f *fetcher) Fetch(ctx context.Context, ref ResourceRef, opts FetchOptions) (IssueData, error) {
-	var (
-		data IssueData
-		err  error
-	)
-
 	switch ref.Type {
 	case ResourceIssue:
-		err = doWithRetry(ctx, f.cfg.MaxRetries, f.cfg.InitialBackoff, nil, func() error {
-			data, err = f.fetchIssue(ctx, ref, opts)
-			return err
+		return f.fetchWithRetry(ctx, "issue", func() (IssueData, error) {
+			return f.fetchIssue(ctx, ref, opts)
 		})
-		if err != nil {
-			return IssueData{}, fmt.Errorf("fetch issue: %w", err)
-		}
-		return data, nil
 	case ResourcePullRequest:
-		err = doWithRetry(ctx, f.cfg.MaxRetries, f.cfg.InitialBackoff, nil, func() error {
-			data, err = f.fetchPullRequest(ctx, ref, opts)
-			return err
+		return f.fetchWithRetry(ctx, "pull request", func() (IssueData, error) {
+			return f.fetchPullRequest(ctx, ref, opts)
 		})
-		if err != nil {
-			return IssueData{}, fmt.Errorf("fetch pull request: %w", err)
-		}
-		return data, nil
 	case ResourceDiscussion:
-		err = doWithRetry(ctx, f.cfg.MaxRetries, f.cfg.InitialBackoff, nil, func() error {
-			data, err = f.fetchDiscussion(ctx, ref, opts)
-			return err
+		return f.fetchWithRetry(ctx, "discussion", func() (IssueData, error) {
+			return f.fetchDiscussion(ctx, ref, opts)
 		})
-		if err != nil {
-			return IssueData{}, fmt.Errorf("fetch discussion: %w", err)
-		}
-		return data, nil
 	default:
 		return IssueData{}, fmt.Errorf("dispatch resource type %q: %w", ref.Type, ErrUnsupportedResourceType)
 	}
+}
+
+func (f *fetcher) fetchWithRetry(ctx context.Context, label string, fn func() (IssueData, error)) (IssueData, error) {
+	var data IssueData
+
+	err := doWithRetry(ctx, f.cfg.MaxRetries, f.cfg.InitialBackoff, nil, func() error {
+		var err error
+		data, err = fn()
+		return err
+	})
+	if err != nil {
+		return IssueData{}, fmt.Errorf("fetch %s: %w", label, err)
+	}
+	return data, nil
 }

@@ -9,7 +9,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,6 +22,7 @@ import (
 	"github.com/johnqtcg/issue2md/internal/converter"
 	gh "github.com/johnqtcg/issue2md/internal/github"
 	"github.com/johnqtcg/issue2md/internal/parser"
+	"github.com/johnqtcg/issue2md/internal/webapp"
 )
 
 const (
@@ -37,17 +39,18 @@ const webWriteTimeoutEnv = "ISSUE2MD_WEB_WRITE_TIMEOUT"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	logger := newLogger(os.Stderr)
 
 	cfg, err := config.NewLoader().Load(nil)
 	if err != nil {
-		log.Fatalf("load config: %v", err)
+		fatal(logger, "load config", err)
 	}
 
 	fetcher, err := gh.NewFetcher(gh.Config{
 		Token: cfg.Token,
 	})
 	if err != nil {
-		log.Fatalf("create fetcher: %v", err)
+		fatal(logger, "create fetcher", err)
 	}
 
 	var summarizer converter.Summarizer
@@ -61,35 +64,35 @@ func main() {
 
 	tmpl, err := loadTemplate()
 	if err != nil {
-		log.Fatalf("load template: %v", err)
+		fatal(logger, "load template", err)
 	}
 
-	handler := newWebHandler(webDeps{
-		parser:          parser.New(),
-		fetcher:         fetcher,
-		renderer:        converter.NewRenderer(summarizer),
-		tmpl:            tmpl,
-		openAPISpecPath: defaultOpenAPISpecPath,
+	handler := webapp.NewHandler(webapp.Deps{
+		Parser:          parser.New(),
+		Fetcher:         fetcher,
+		Renderer:        converter.NewRenderer(summarizer),
+		Template:        tmpl,
+		OpenAPISpecPath: webapp.DefaultOpenAPISpecPath,
 	})
 
 	writeTimeout, err := resolveWebWriteTimeout()
 	if err != nil {
-		log.Fatalf("resolve web write timeout: %v", err)
+		fatal(logger, "resolve web write timeout", err)
 	}
 
 	server := newHTTPServer(resolveWebAddr(), handler, writeTimeout)
 
 	if _, err := fmt.Fprintf(os.Stdout, "issue2md web listening on %s\n", server.Addr); err != nil {
-		log.Printf("write startup message: %v", err)
+		logger.Error("write startup message", "err", err)
 	}
-	err = runWithGracefulShutdown(ctx, server.ListenAndServe, server.Shutdown, defaultShutdownTimeout)
+	err = runWithGracefulShutdown(ctx, server.ListenAndServe, server.Shutdown, defaultShutdownTimeout, logger)
 	stop()
 	if err != nil {
-		log.Fatalf("%v", err)
+		fatal(logger, "run web server", err)
 	}
 }
 
-func runWithGracefulShutdown(ctx context.Context, serve func() error, shutdown func(context.Context) error, shutdownTimeout time.Duration) error {
+func runWithGracefulShutdown(ctx context.Context, serve func() error, shutdown func(context.Context) error, shutdownTimeout time.Duration, logger *slog.Logger) error {
 	if serve == nil {
 		return fmt.Errorf("serve function is nil")
 	}
@@ -98,6 +101,9 @@ func runWithGracefulShutdown(ctx context.Context, serve func() error, shutdown f
 	}
 	if shutdownTimeout <= 0 {
 		shutdownTimeout = defaultShutdownTimeout
+	}
+	if logger == nil {
+		logger = newLogger(io.Discard)
 	}
 
 	serveErrCh := make(chan error, 1)
@@ -112,7 +118,7 @@ func runWithGracefulShutdown(ctx context.Context, serve func() error, shutdown f
 		}
 		return nil
 	case <-ctx.Done():
-		log.Printf("shutdown signal received, stopping web server")
+		logger.Info("shutdown signal received", "timeout", shutdownTimeout.String())
 
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
@@ -127,6 +133,15 @@ func runWithGracefulShutdown(ctx context.Context, serve func() error, shutdown f
 		}
 		return nil
 	}
+}
+
+func newLogger(w io.Writer) *slog.Logger {
+	return slog.New(slog.NewTextHandler(w, nil))
+}
+
+func fatal(logger *slog.Logger, msg string, err error) {
+	logger.Error(msg, "err", err)
+	os.Exit(1)
 }
 
 func resolveWebAddr() string {

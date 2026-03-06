@@ -26,8 +26,6 @@ func New() URLParser {
 type defaultParser struct{}
 
 func (p *defaultParser) Parse(rawURL string) (gh.ResourceRef, error) {
-	_ = p
-
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return gh.ResourceRef{}, fmt.Errorf("parse URL %q: %w", rawURL, err)

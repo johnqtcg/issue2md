@@ -196,7 +196,6 @@ func (a *App) processOne(ctx context.Context, cfg config.Config, mode Mode, rawU
 type defaultFetcherFactory struct{}
 
 func (f defaultFetcherFactory) New(cfg config.Config) (gh.Fetcher, error) {
-	_ = f
 	fetcher, err := gh.NewFetcher(gh.Config{
 		Token: cfg.Token,
 	})
@@ -209,8 +208,6 @@ func (f defaultFetcherFactory) New(cfg config.Config) (gh.Fetcher, error) {
 type defaultRendererFactory struct{}
 
 func (f defaultRendererFactory) New(cfg config.Config) converter.Renderer {
-	_ = f
-
 	var summarizer converter.Summarizer
 	if cfg.OpenAIAPIKey != "" {
 		summarizer = converter.NewOpenAISummarizer(converter.OpenAISummarizerConfig{

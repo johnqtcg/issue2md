@@ -134,10 +134,7 @@ func wrapRESTError(op string, err error) error {
 
 	var respErr *goGithub.ErrorResponse
 	if errors.As(err, &respErr) && respErr.Response != nil {
-		return fmt.Errorf("%s: %w", op, &statusError{
-			StatusCode: respErr.Response.StatusCode,
-			Err:        err,
-		})
+		return fmt.Errorf("%s: %w", op, NewStatusError(respErr.Response.StatusCode, err, respErr.Response.Header))
 	}
 
 	return fmt.Errorf("%s: %w", op, err)

@@ -23,10 +23,7 @@ func IsRateLimitError(err error) bool {
 
 	var stErr *statusError
 	if errors.As(err, &stErr) {
-		if stErr.StatusCode == http.StatusTooManyRequests {
-			return true
-		}
-		if stErr.StatusCode == http.StatusForbidden && looksLikeRateLimitError(stErr.Err) {
+		if isRateLimitStatusError(stErr) {
 			return true
 		}
 	}
@@ -48,8 +45,6 @@ func IsAuthError(err error) bool {
 	}
 
 	text := strings.ToLower(err.Error())
-	return strings.Contains(text, "status 401") ||
-		strings.Contains(text, "status 403") ||
-		strings.Contains(text, "unauthorized") ||
+	return strings.Contains(text, "unauthorized") ||
 		strings.Contains(text, "forbidden")
 }

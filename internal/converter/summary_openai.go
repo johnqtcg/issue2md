@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/netip"
-	"net/url"
 	"strings"
 	"time"
+	"unicode"
 
 	gh "github.com/johnqtcg/issue2md/internal/github"
+	"github.com/johnqtcg/issue2md/internal/urlutil"
 )
 
 const (
@@ -177,36 +177,7 @@ func buildResponsesEndpoint(baseURL string) string {
 }
 
 func validateResponsesEndpoint(endpoint string) error {
-	parsed, err := url.Parse(strings.TrimSpace(endpoint))
-	if err != nil {
-		return fmt.Errorf("parse endpoint %q: %w", endpoint, err)
-	}
-	if parsed.Scheme != "https" {
-		return fmt.Errorf("endpoint must use https scheme")
-	}
-	if parsed.Hostname() == "" {
-		return fmt.Errorf("endpoint host is empty")
-	}
-	if parsed.User != nil {
-		return fmt.Errorf("endpoint must not include userinfo")
-	}
-	if isPrivateIPLiteral(parsed.Hostname()) {
-		return fmt.Errorf("endpoint must not use private ip literal")
-	}
-	return nil
-}
-
-func isPrivateIPLiteral(host string) bool {
-	addr, err := netip.ParseAddr(host)
-	if err != nil {
-		return false
-	}
-	return addr.IsPrivate() ||
-		addr.IsLoopback() ||
-		addr.IsLinkLocalUnicast() ||
-		addr.IsLinkLocalMulticast() ||
-		addr.IsMulticast() ||
-		addr.IsUnspecified()
+	return urlutil.ValidatePublicHTTPSURL(endpoint, "endpoint")
 }
 
 func buildSummaryPrompt(data gh.IssueData, lang string) string {
@@ -293,15 +264,31 @@ func resolveSummaryLanguage(override string, data gh.IssueData) string {
 		return override
 	}
 
-	source := data.Meta.Title + "\n" + data.Description
-	for _, r := range source {
-		if isLikelyChineseRune(r) {
-			return "zh"
-		}
-	}
-	return "en"
+	return detectSummaryLanguage(data.Meta.Title + "\n" + data.Description)
 }
 
-func isLikelyChineseRune(r rune) bool {
-	return r >= 0x4E00 && r <= 0x9FFF
+func detectSummaryLanguage(source string) string {
+	var hasHan, hasJapaneseKana, hasHangul bool
+
+	for _, r := range source {
+		switch {
+		case unicode.In(r, unicode.Hiragana, unicode.Katakana):
+			hasJapaneseKana = true
+		case unicode.In(r, unicode.Hangul):
+			hasHangul = true
+		case unicode.In(r, unicode.Han):
+			hasHan = true
+		}
+	}
+
+	switch {
+	case hasJapaneseKana:
+		return "ja"
+	case hasHangul:
+		return "ko"
+	case hasHan:
+		return "zh"
+	default:
+		return "en"
+	}
 }

@@ -257,7 +257,7 @@ func authHTTPStatus(err error) int {
 	}
 
 	text := strings.ToLower(err.Error())
-	if strings.Contains(text, "status 403") || strings.Contains(text, "forbidden") {
+	if strings.Contains(text, "forbidden") {
 		return http.StatusForbidden
 	}
 	return http.StatusUnauthorized

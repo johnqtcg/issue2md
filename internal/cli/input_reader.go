@@ -21,8 +21,6 @@ func NewFileInputReader() InputReader {
 }
 
 func (r *fileInputReader) Read(path string, handle func(line string) error) (err error) {
-	_ = r
-
 	cleanPath := filepath.Clean(path)
 	if cleanPath == "." {
 		return fmt.Errorf("open input file %q: path is empty", path)

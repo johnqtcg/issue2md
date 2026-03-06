@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -225,5 +226,35 @@ func TestNewGraphQLClientRejectsPrivateIPLiteral(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "private ip") {
 		t.Fatalf("error = %v, want mention private ip", err)
+	}
+}
+
+func TestGraphQLQueryMarksRateLimitFromHeaders(t *testing.T) {
+	t.Parallel()
+
+	clientHTTP := newTestHTTPClient(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusForbidden,
+			Header: http.Header{
+				"X-RateLimit-Reset": []string{"1893456000"},
+			},
+			Body: io.NopCloser(strings.NewReader("forbidden")),
+		}, nil
+	})
+
+	client, err := newGraphQLClient(Config{
+		HTTPClient: clientHTTP,
+		GraphQLURL: "https://api.test/graphql",
+	})
+	if err != nil {
+		t.Fatalf("newGraphQLClient error = %v, want nil", err)
+	}
+
+	err = client.Query(context.Background(), "query Test { value }", nil, nil)
+	if err == nil {
+		t.Fatal("Query error = nil, want error")
+	}
+	if !IsRateLimitError(err) {
+		t.Fatalf("IsRateLimitError(%v) = false, want true", err)
 	}
 }

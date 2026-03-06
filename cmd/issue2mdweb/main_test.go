@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -15,6 +18,7 @@ import (
 
 	"github.com/johnqtcg/issue2md/internal/converter"
 	gh "github.com/johnqtcg/issue2md/internal/github"
+	"github.com/johnqtcg/issue2md/internal/webapp"
 )
 
 func TestNewWebHandlerGetIndex(t *testing.T) {
@@ -302,7 +306,7 @@ func TestNewWebHandlerConvertStatusMapping(t *testing.T) {
 			method:      http.MethodPost,
 			body:        url.Values{"url": []string{rawURL}}.Encode(),
 			contentType: "application/x-www-form-urlencoded",
-			fetchErr:    errors.New("http status 401: bad credentials"),
+			fetchErr:    gh.NewStatusError(http.StatusUnauthorized, errors.New("bad credentials"), nil),
 			wantStatus:  http.StatusUnauthorized,
 		},
 		{
@@ -310,7 +314,7 @@ func TestNewWebHandlerConvertStatusMapping(t *testing.T) {
 			method:      http.MethodPost,
 			body:        url.Values{"url": []string{rawURL}}.Encode(),
 			contentType: "application/x-www-form-urlencoded",
-			fetchErr:    errors.New("forbidden"),
+			fetchErr:    gh.NewStatusError(http.StatusForbidden, errors.New("forbidden"), nil),
 			wantStatus:  http.StatusForbidden,
 		},
 		{
@@ -318,7 +322,7 @@ func TestNewWebHandlerConvertStatusMapping(t *testing.T) {
 			method:      http.MethodPost,
 			body:        url.Values{"url": []string{rawURL}}.Encode(),
 			contentType: "application/x-www-form-urlencoded",
-			fetchErr:    errors.New("http status 403: API rate limit exceeded"),
+			fetchErr:    gh.NewStatusError(http.StatusForbidden, errors.New("forbidden"), http.Header{"Retry-After": []string{"5"}}),
 			wantStatus:  http.StatusTooManyRequests,
 		},
 		{
@@ -420,6 +424,7 @@ func TestRunWithGracefulShutdownOnContextCancel(t *testing.T) {
 				return nil
 			},
 			2*time.Second,
+			newTestLogger(),
 		)
 	}()
 
@@ -453,6 +458,7 @@ func TestRunWithGracefulShutdownReturnsServeError(t *testing.T) {
 		func() error { return errors.New("boom") },
 		func(context.Context) error { return nil },
 		time.Second,
+		newTestLogger(),
 	)
 	if err == nil {
 		t.Fatal("runWithGracefulShutdown error = nil, want error")
@@ -485,6 +491,7 @@ func TestRunWithGracefulShutdownReturnsShutdownError(t *testing.T) {
 				return errors.New("shutdown failed")
 			},
 			time.Second,
+			newTestLogger(),
 		)
 	}()
 
@@ -639,4 +646,26 @@ func (f *fakeWebRenderer) Render(ctx context.Context, data gh.IssueData, opts co
 		return nil, f.err
 	}
 	return f.content, nil
+}
+
+type webDeps struct {
+	parser          *fakeWebParser
+	fetcher         *fakeWebFetcher
+	renderer        *fakeWebRenderer
+	tmpl            *template.Template
+	openAPISpecPath string
+}
+
+func newWebHandler(deps webDeps) http.Handler {
+	return webapp.NewHandler(webapp.Deps{
+		Parser:          deps.parser,
+		Fetcher:         deps.fetcher,
+		Renderer:        deps.renderer,
+		Template:        deps.tmpl,
+		OpenAPISpecPath: deps.openAPISpecPath,
+	})
+}
+
+func newTestLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }

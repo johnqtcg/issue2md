@@ -2,10 +2,15 @@ package converter
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+var updateGolden = flag.Bool("update", false, "update golden testdata files")
 
 func TestRendererSectionOrder(t *testing.T) {
 	t.Parallel()
@@ -112,14 +117,48 @@ func TestRendererGoldenIssuePRDiscussion(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got := tc.data()
-			wantBytes, err := os.ReadFile(tc.golden)
-			if err != nil {
-				t.Fatalf("ReadFile(%s) error = %v", tc.golden, err)
-			}
-			want := string(wantBytes)
-			if got != want {
-				t.Fatalf("golden mismatch for %s\n--- got ---\n%s\n--- want ---\n%s", tc.name, got, want)
+			if err := assertGolden(tc.golden, got, *updateGolden); err != nil {
+				t.Fatal(err)
 			}
 		})
 	}
+}
+
+func TestAssertGoldenUpdateMode(t *testing.T) {
+	t.Parallel()
+
+	path := filepath.Join(t.TempDir(), "sample.golden")
+	if err := os.WriteFile(path, []byte("old\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile(%s) error = %v", path, err)
+	}
+
+	if err := assertGolden(path, "new\n", true); err != nil {
+		t.Fatalf("assertGolden update error = %v, want nil", err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("ReadFile(%s) error = %v", path, err)
+	}
+	if string(got) != "new\n" {
+		t.Fatalf("golden contents = %q, want %q", string(got), "new\n")
+	}
+}
+
+func assertGolden(path, got string, update bool) error {
+	if update {
+		if err := os.WriteFile(path, []byte(got), 0o600); err != nil {
+			return err
+		}
+	}
+
+	wantBytes, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	want := string(wantBytes)
+	if got != want {
+		return fmt.Errorf("golden mismatch for %s\n--- got ---\n%s\n--- want ---\n%s", path, got, want)
+	}
+	return nil
 }
