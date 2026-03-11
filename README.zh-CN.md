@@ -1,7 +1,7 @@
 # issue2md
 
 [![CI](https://github.com/johnqtcg/issue2md/actions/workflows/ci.yml/badge.svg)](https://github.com/johnqtcg/issue2md/actions/workflows/ci.yml)
-![Go Version](https://img.shields.io/badge/go-1.25.7-00ADD8)
+![Go Version](https://img.shields.io/badge/go-1.25.8-00ADD8)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 把 GitHub `Issue`、`Pull Request` 和 `Discussion` URL 转成干净、可归档、可分享、可继续处理的 Markdown。
@@ -21,7 +21,7 @@
 ## 项目概览
 
 - 双入口形态：`CLI tool + backend web service`。
-- Go 版本：`go 1.25.7`（见 `go.mod`）。
+- Go 版本：`go 1.25.8`（见 `go.mod`）。
 - 模块路径：`github.com/johnqtcg/issue2md`。
 
 <a id="cn-highlights"></a>

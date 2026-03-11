@@ -1,7 +1,7 @@
 # issue2md
 
 [![CI](https://github.com/johnqtcg/issue2md/actions/workflows/ci.yml/badge.svg)](https://github.com/johnqtcg/issue2md/actions/workflows/ci.yml)
-![Go Version](https://img.shields.io/badge/go-1.25.7-00ADD8)
+![Go Version](https://img.shields.io/badge/go-1.25.8-00ADD8)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 Turn GitHub `Issue`, `Pull Request`, and `Discussion` URLs into clean Markdown for archiving, sharing, and downstream automation.
@@ -25,7 +25,7 @@ Language:
 ## Overview
 
 - Dual entrypoints: `CLI tool + backend web service`.
-- Go version: `go 1.25.7` (from `go.mod`).
+- Go version: `go 1.25.8` (from `go.mod`).
 - Module path: `github.com/johnqtcg/issue2md`.
 
 <a id="highlights"></a>
