@@ -1,17 +1,12 @@
-# 安全策略 (Security Policy)
+# 安全策略
 
 本文档说明本项目的漏洞报告方式、响应流程与披露原则。
 
-## 1. 支持版本 (Supported Versions)
+## 1. 支持版本
 
 当前默认仅保证 `main` 分支上的最新代码会接收安全修复。
 
-| Version | Supported |
-|---|---|
-| `main` | Yes |
-| 历史版本 / tags | No (unless explicitly announced) |
-
-## 2. 漏洞上报 (Reporting a Vulnerability)
+## 2. 漏洞上报
 
 请不要在公开 Issue/PR 中直接披露漏洞细节。
 
@@ -25,7 +20,7 @@
 - 先提交一个不含漏洞细节的公开 Issue，请求维护者提供私密沟通渠道；
 - 在获得私密渠道前，不要公开 PoC、攻击路径、敏感配置或可复现 payload。
 
-## 3. 建议提供的信息 (What to Include)
+## 3. 建议提供的信息
 
 为加速修复，请尽量提供：
 
@@ -35,7 +30,7 @@
 - 最小 PoC（必要时可脱敏）；
 - 可能的修复建议（可选）。
 
-## 4. 响应时效 (Response SLA)
+## 4. 响应时效
 
 维护者目标时效：
 
@@ -45,13 +40,13 @@
 
 说明：以上为目标 SLA，不构成法律承诺。
 
-## 5. 披露原则 (Disclosure Policy)
+## 5. 披露原则
 
 - 在修复发布前，报告方与维护方都应避免公开可利用细节。
 - 修复发布后，可协商进行 Responsible Disclosure。
 - 若漏洞已被公开利用，维护者可提前发布临时缓解方案（Mitigation）。
 
-## 6. 安全边界与不受理范围 (Out of Scope)
+## 6. 安全边界与不受理范围
 
 以下通常不作为本仓库漏洞受理：
 

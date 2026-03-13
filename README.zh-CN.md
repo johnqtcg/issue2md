@@ -4,6 +4,8 @@
 ![Go Version](https://img.shields.io/badge/go-1.25.8-00ADD8)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+本项目是规范驱动开发（SDD）和测试驱动开发（TDD）的直接产物。SDD 工作流参考了开源项目 [github/spec-kit](https://github.com/github/spec-kit)，项目规范沉淀在 [`specs/`](specs) 目录下，整体实现由 Codex 5.3 完成。
+
 把 GitHub `Issue`、`Pull Request` 和 `Discussion` URL 转成干净、可归档、可分享、可继续处理的 Markdown。
 
 ## 目录
@@ -134,6 +136,7 @@ App panics when config is nil.
 │   ├── github/              # GitHub API 抓取
 │   ├── converter/           # Markdown 渲染与可选 AI 摘要
 │   └── webapp/              # HTTP handler 与页面模板装配
+├── specs/                   # SDD 规范源：规格、计划与任务拆解
 ├── tests/
 │   ├── integration/http/    # API 集成测试
 │   └── e2e/web/             # Web E2E 测试

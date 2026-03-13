@@ -1,8 +1,8 @@
-# 贡献指南 (Contributing Guide)
+# 贡献指南
 
 感谢你参与 `issue2md` 项目。本文档说明如何提交高质量变更，并与现有工程规范保持一致。
 
-## 1. 基本原则 (Principles)
+## 1. 基本原则
 
 请优先遵循以下仓库规范文件：
 
@@ -16,7 +16,7 @@
 - 单元测试优先使用 Table-Driven Tests。
 - 错误处理必须显式且可追踪（error wrapping）。
 
-## 2. 开发环境 (Development Setup)
+## 2. 开发环境
 
 前置条件：
 
@@ -33,7 +33,7 @@ make cover-check COVER_MIN=80
 make build-all
 ```
 
-## 3. 分支与提交 (Branch & Commit)
+## 3. 分支与提交
 
 - 分支建议：`feature/<topic>`、`fix/<topic>`、`chore/<topic>`
 - 提交信息必须使用 Conventional Commits：
@@ -50,7 +50,7 @@ fix(web): handle openapi file missing as 503
 docs(readme): refresh command verifiability section
 ```
 
-## 4. 代码与测试要求 (Code & Test Requirements)
+## 4. 代码与测试要求
 
 提交前请至少满足：
 
@@ -66,7 +66,7 @@ docs(readme): refresh command verifiability section
 - 对边界条件、异常路径、参数冲突增加测试用例。
 - 避免无价值测试（仅覆盖 happy path 且不验证行为）。
 
-## 5. Pull Request 要求 (PR Requirements)
+## 5. Pull Request 要求
 
 请在 PR 描述中包含：
 
@@ -83,7 +83,7 @@ docs(readme): refresh command verifiability section
 - [ ] `make lint` 通过
 - [ ] 文档已同步（如 `README.md`、`docs/swagger.json`）
 
-## 6. 安全与行为规范 (Security & Conduct)
+## 6. 安全与行为规范
 
 - 行为规范：见 `CODE_OF_CONDUCT.md`
 - 漏洞上报：见 `SECURITY.md`

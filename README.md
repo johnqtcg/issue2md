@@ -4,6 +4,8 @@
 ![Go Version](https://img.shields.io/badge/go-1.25.8-00ADD8)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+This project is a concrete output of Specification-Driven Development (SDD) and Test-Driven Development (TDD). Its SDD workflow is informed by the open-source [github/spec-kit](https://github.com/github/spec-kit), the project specifications live under [`specs/`](specs), and the implementation was completed with Codex 5.3.
+
 Turn GitHub `Issue`, `Pull Request`, and `Discussion` URLs into clean Markdown for archiving, sharing, and downstream automation.
 
 Language:
@@ -138,6 +140,7 @@ The generated file always includes metadata, original description, thread conten
 │   ├── github/              # GitHub API fetching
 │   ├── converter/           # Markdown rendering and optional AI summary
 │   └── webapp/              # HTTP handlers and template wiring
+├── specs/                   # SDD source of truth: specs, plans, and tasks
 ├── tests/
 │   ├── integration/http/    # API integration tests
 │   └── e2e/web/             # Web E2E tests

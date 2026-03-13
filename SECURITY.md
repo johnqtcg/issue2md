@@ -1,9 +1,5 @@
 # Security Policy
 
-Language:
-- English (primary): `SECURITY.md`
-- Chinese: [SECURITY.zh-CN.md](SECURITY.zh-CN.md)
-
 This document explains how to report vulnerabilities, expected response timelines, and disclosure principles for `issue2md`.
 
 ## 1. Supported Versions

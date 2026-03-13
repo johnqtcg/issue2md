@@ -2,10 +2,6 @@
 
 Thanks for contributing to `issue2md`.
 
-Language:
-- English (primary): `CONTRIBUTING.md`
-- Chinese: [CONTRIBUTING.zh-CN.md](CONTRIBUTING.zh-CN.md)
-
 ## 1. Principles
 
 Please follow these repository policies in order:
