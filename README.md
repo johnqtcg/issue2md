@@ -4,9 +4,9 @@
 ![Go Version](https://img.shields.io/badge/go-1.25.8-00ADD8)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-This project is a concrete output of Specification-Driven Development (SDD) and Test-Driven Development (TDD). Its SDD workflow is informed by the open-source [github/spec-kit](https://github.com/github/spec-kit), the project specifications live under [`specs/`](specs), and the implementation was completed with Codex 5.3.
+Turn GitHub `Issue`, `Pull Request`, and `Discussion` URLs into clean Markdown for archiving, sharing, and downstream automation. One tool, two entrypoints: use the **CLI** for local export or the **Web service** for browser and API-driven workflows. When `OPENAI_API_KEY` is configured, output can also include a structured `## AI Summary` section with summary, decisions, and action items.
 
-Turn GitHub `Issue`, `Pull Request`, and `Discussion` URLs into clean Markdown for archiving, sharing, and downstream automation.
+This project is a concrete output of Specification-Driven Development (SDD) and Test-Driven Development (TDD). Its SDD workflow is informed by the open-source [github/spec-kit](https://github.com/github/spec-kit), the project specifications live under [`specs/`](specs), and the implementation was completed with Codex 5.3.
 
 Language:
 - English (primary): `README.md`
@@ -14,28 +14,23 @@ Language:
 
 ## Contents
 
-- [Overview](#overview)
-- [Highlights](#highlights)
+- [Prerequisites](#prerequisites)
 - [Install](#install)
 - [Quick Start](#quick-start)
-- [End-to-End Example](#end-to-end-example)
-- [Configuration and Environment](#configuration-and-environment)
-- [Common Commands](#common-commands)
+- [Output Format](#end-to-end-example)
+- [Configuration](#configuration-and-environment)
+- [Web API](#web-api-example)
+- [Project Structure](#project-structure)
+- [Troubleshooting](#troubleshooting)
 - [Project Docs](#project-docs)
 
-<a id="overview"></a>
-## Overview
+<a id="prerequisites"></a>
+## Prerequisites
 
-- Dual entrypoints: `CLI tool + backend web service`.
-- Go version: `go 1.25.8` (from `go.mod`).
-- Module path: `github.com/johnqtcg/issue2md`.
-
-<a id="highlights"></a>
-## Highlights
-
-- One tool, two entrypoints: use the CLI for local export or the Web service for browser and API-driven workflows.
-- Optional AI summary: when `OPENAI_API_KEY` is configured, output can include a structured `## AI Summary` section with summary, decisions, and action items.
-- Structured output by default: rendered markdown preserves metadata, original description, discussion thread, and source reference URL.
+- Go `>= 1.25` (current: `go 1.25.8`) ([download](https://go.dev/dl/))
+- A GitHub Personal Access Token with `repo` read permission ([create one](https://github.com/settings/tokens))
+- _(Optional)_ An OpenAI API key — required only for the `## AI Summary` output feature
+- _(Optional)_ Docker — required only for `make docker-build`
 
 <a id="install"></a>
 ## Install
@@ -79,10 +74,10 @@ curl -sS -X POST http://127.0.0.1:18080/convert \
 Notes:
 - Requires Go `>= 1.25` and an installed binary.
 - If you prefer local binaries, use `make build-cli` or `make web`.
-- Contributor checks remain in `Common Commands` and `Testing and Quality`.
+- Contributor checks: `make ci COVER_MIN=80` for the full local gate; `make help` lists all targets.
 
 <a id="end-to-end-example"></a>
-## End-to-End Example
+## Output Format
 
 Convert one issue URL and let the CLI choose the default output filename:
 
@@ -150,8 +145,7 @@ The generated file always includes metadata, original description, thread conten
 └── Dockerfile
 ```
 
-<a id="architecture-and-data-flow"></a>
-## Architecture and Data Flow
+### Architecture and Data Flow
 
 CLI path:
 
@@ -187,7 +181,7 @@ Command source of truth: root `Makefile`.
 | `make docker-build` | Build Docker image | Makefile + CI (Linux runner) |
 
 <a id="configuration-and-environment"></a>
-## Configuration and Environment
+## Configuration
 
 ### Runtime Environment Variables
 
@@ -222,7 +216,7 @@ Default output filename pattern (`internal/cli/output.go`):
 ```
 
 <a id="web-api-example"></a>
-## Web API Example
+## Web API
 
 Routes:
 - `GET /`

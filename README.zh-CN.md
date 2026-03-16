@@ -4,34 +4,29 @@
 ![Go Version](https://img.shields.io/badge/go-1.25.8-00ADD8)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-本项目是规范驱动开发（SDD）和测试驱动开发（TDD）的直接产物。SDD 工作流参考了开源项目 [github/spec-kit](https://github.com/github/spec-kit)，项目规范沉淀在 [`specs/`](specs) 目录下，整体实现由 Codex 5.3 完成。
+把 GitHub `Issue`、`Pull Request` 和 `Discussion` URL 转成干净、可归档、可分享、可继续处理的 Markdown。一个工具，两种入口：本地导出用 **CLI**，浏览器或接口工作流用 **Web 服务**。配置 `OPENAI_API_KEY` 后，输出可附带结构化的 `## AI Summary` 区块，包含摘要、决策项和行动项。
 
-把 GitHub `Issue`、`Pull Request` 和 `Discussion` URL 转成干净、可归档、可分享、可继续处理的 Markdown。
+本项目是规范驱动开发（SDD）和测试驱动开发（TDD）的直接产物。SDD 工作流参考了开源项目 [github/spec-kit](https://github.com/github/spec-kit)，项目规范沉淀在 [`specs/`](specs) 目录下，整体实现由 Codex 5.3 完成。
 
 ## 目录
 
-- [项目概览](#cn-overview)
-- [功能亮点](#cn-highlights)
+- [前置条件](#cn-prerequisites)
 - [安装](#cn-install)
 - [快速开始](#cn-quick-start)
-- [端到端示例](#cn-end-to-end-example)
+- [输出格式](#cn-end-to-end-example)
 - [配置与环境变量](#cn-configuration-and-env)
-- [常用命令](#cn-common-commands)
+- [API 示例（Web）](#cn-web-api-example)
+- [项目结构](#cn-project-structure)
+- [故障排查](#cn-troubleshooting)
 - [项目文档](#cn-project-docs)
 
-<a id="cn-overview"></a>
-## 项目概览
+<a id="cn-prerequisites"></a>
+## 前置条件
 
-- 双入口形态：`CLI tool + backend web service`。
-- Go 版本：`go 1.25.8`（见 `go.mod`）。
-- 模块路径：`github.com/johnqtcg/issue2md`。
-
-<a id="cn-highlights"></a>
-## 功能亮点
-
-- 一个工具，两种入口：本地导出可用 CLI，浏览器或接口工作流可用 Web 服务。
-- 可选 AI 摘要：配置 `OPENAI_API_KEY` 后，输出可包含结构化的 `## AI Summary` 区块，带 summary、decisions 和 action items。
-- 默认结构化输出：生成的 Markdown 会保留 metadata、original description、discussion thread 和原始 URL 引用。
+- Go `>= 1.25`（当前版本：`go 1.25.8`， [下载地址](https://go.dev/dl/)）
+- 拥有目标仓库读取权限的 GitHub Personal Access Token（[创建 Token](https://github.com/settings/tokens)）
+- _（可选）_ OpenAI API Key — 仅在需要 `## AI Summary` 输出时才需要
+- _（可选）_ Docker — 仅在执行 `make docker-build` 时才需要
 
 <a id="cn-install"></a>
 ## 安装
@@ -75,10 +70,10 @@ curl -sS -X POST http://127.0.0.1:18080/convert \
 说明：
 - 需要 Go `>= 1.25` 和已安装的可执行文件。
 - 如果你更偏向本地二进制，可使用 `make build-cli` 或 `make web`。
-- 贡献者门禁命令保留在后面的 `常用命令` 和 `测试与质量检查` 章节。
+- 贡献者门禁命令：`make ci COVER_MIN=80` 为完整本地门禁；`make help` 可查看所有目标。
 
 <a id="cn-end-to-end-example"></a>
-## 端到端示例
+## 输出格式
 
 把一个 issue URL 转成 Markdown，并让 CLI 自动生成默认文件名：
 
@@ -146,8 +141,7 @@ App panics when config is nil.
 └── Dockerfile
 ```
 
-<a id="cn-architecture-and-flow"></a>
-## 架构与数据流
+### 架构与数据流
 
 CLI 路径：
 
@@ -256,7 +250,7 @@ curl -sS -X POST http://127.0.0.1:8080/convert \
 - `fieldalignment`: 结构体字段对齐检查
 
 <a id="cn-troubleshooting"></a>
-## 故障排查（Troubleshooting）
+## 故障排查
 
 ### GitHub Token 与权限问题
 
