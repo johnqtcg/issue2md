@@ -107,10 +107,12 @@ func isRetryableError(err error) bool {
 		return true
 	}
 
-	type temporary interface {
-		Temporary() bool
-	}
-	if temp, ok := any(netErr).(temporary); ok && temp.Temporary() {
+	// Temporary() is deprecated on net.Error but concrete types like
+	// *net.DNSError still use it to signal transient resolution failures
+	// that are not timeouts. Dropping this check would silently stop
+	// retrying real transport blips during GitHub API calls.
+	type temporary interface{ Temporary() bool }
+	if t, ok := netErr.(temporary); ok && t.Temporary() {
 		return true
 	}
 

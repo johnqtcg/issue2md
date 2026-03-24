@@ -100,7 +100,7 @@ func (c *graphQLClient) QueryPaginated(ctx context.Context, query string, variab
 	}
 }
 
-func (c *graphQLClient) queryRaw(ctx context.Context, query string, variables map[string]any) (json.RawMessage, error) {
+func (c *graphQLClient) queryRaw(ctx context.Context, query string, variables map[string]any) (_ json.RawMessage, err error) {
 	payload := graphQLRequest{
 		Query:     query,
 		Variables: variables,
@@ -125,11 +125,16 @@ func (c *graphQLClient) queryRaw(ctx context.Context, query string, variables ma
 		return nil, fmt.Errorf("execute graphql request: %w", err)
 	}
 	defer func() {
-		_ = resp.Body.Close()
+		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("close graphql response body: %w", closeErr)
+		}
 	}()
 
 	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 16*1024))
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 16*1024))
+		if readErr != nil {
+			body = []byte(fmt.Sprintf("<body read failed: %v>", readErr))
+		}
 		return nil, fmt.Errorf("graphql status error: %w", NewStatusError(
 			resp.StatusCode,
 			fmt.Errorf("%s", strings.TrimSpace(string(body))),

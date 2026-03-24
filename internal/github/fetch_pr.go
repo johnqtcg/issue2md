@@ -14,6 +14,8 @@ func (f *fetcher) fetchPullRequest(ctx context.Context, ref ResourceRef, opts Fe
 		return IssueData{}, fmt.Errorf("fetch pull request resource: %w", err)
 	}
 
+	// GitHub REST API does not include reactions on the PullRequest endpoint;
+	// fetch the issue envelope to retrieve them.
 	issueForPR, err := f.rest.getIssue(ctx, ref.Owner, ref.Repo, ref.Number)
 	if err != nil {
 		return IssueData{}, fmt.Errorf("fetch pull request issue envelope: %w", err)

@@ -26,6 +26,7 @@ func TestIsRetryableError(t *testing.T) {
 		{name: "status 401", err: NewStatusError(http.StatusUnauthorized, errors.New("unauthorized"), nil), want: false},
 		{name: "status 404", err: NewStatusError(http.StatusNotFound, errors.New("not found"), nil), want: false},
 		{name: "network timeout", err: temporaryNetError{}, want: true},
+		{name: "temporary non-timeout network error", err: transientDNSError{}, want: true},
 		{name: "permanent network error", err: permanentNetError{}, want: false},
 		{name: "generic error", err: errors.New("boom"), want: false},
 	}
@@ -128,3 +129,13 @@ func (permanentNetError) Timeout() bool { return false }
 func (permanentNetError) Temporary() bool { return false }
 
 var _ net.Error = permanentNetError{}
+
+// transientDNSError simulates a *net.DNSError{IsTemporary:true} style failure:
+// Temporary() is true but Timeout() is false. Guards the Temporary() retry branch.
+type transientDNSError struct{}
+
+func (transientDNSError) Error() string   { return "transient DNS lookup failure" }
+func (transientDNSError) Timeout() bool   { return false }
+func (transientDNSError) Temporary() bool { return true }
+
+var _ net.Error = transientDNSError{}
