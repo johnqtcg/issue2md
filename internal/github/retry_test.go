@@ -134,8 +134,10 @@ var _ net.Error = permanentNetError{}
 // Temporary() is true but Timeout() is false. Guards the Temporary() retry branch.
 type transientDNSError struct{}
 
-func (transientDNSError) Error() string   { return "transient DNS lookup failure" }
-func (transientDNSError) Timeout() bool   { return false }
+func (transientDNSError) Error() string { return "transient DNS lookup failure" }
+
+func (transientDNSError) Timeout() bool { return false }
+
 func (transientDNSError) Temporary() bool { return true }
 
 var _ net.Error = transientDNSError{}
