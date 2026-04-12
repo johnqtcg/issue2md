@@ -9,7 +9,7 @@ on:
 
 jobs:
   ci:
-    name: Test · Lint · Build
+    name: Format · Test · Lint · Build
     runs-on: ubuntu-latest
 
     steps:
