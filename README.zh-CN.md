@@ -1,7 +1,7 @@
 # issue2md
 
 [![CI](https://github.com/johnqtcg/issue2md/actions/workflows/ci.yml/badge.svg)](https://github.com/johnqtcg/issue2md/actions/workflows/ci.yml)
-![Go Version](https://img.shields.io/badge/go-1.25.8-00ADD8)
+![Go Version](https://img.shields.io/badge/go-1.25.9-00ADD8)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 把 GitHub `Issue`、`Pull Request` 和 `Discussion` URL 转成干净、可归档、可分享、可继续处理的 Markdown。一个工具，两种入口：本地导出用 **CLI**，浏览器或接口工作流用 **Web 服务**。配置 `OPENAI_API_KEY` 后，输出可附带结构化的 `## AI Summary` 区块，包含摘要、决策项和行动项。
@@ -23,7 +23,7 @@
 <a id="cn-prerequisites"></a>
 ## 前置条件
 
-- Go `>= 1.25`（当前版本：`go 1.25.8`， [下载地址](https://go.dev/dl/)）
+- Go `>= 1.25`（当前版本：`go 1.25.9`， [下载地址](https://go.dev/dl/)）
 - 拥有目标仓库读取权限的 GitHub Personal Access Token（[创建 Token](https://github.com/settings/tokens)）
 - _（可选）_ OpenAI API Key — 仅在需要 `## AI Summary` 输出时才需要
 - _（可选）_ Docker — 仅在执行 `make docker-build` 时才需要

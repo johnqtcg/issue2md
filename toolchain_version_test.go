@@ -10,8 +10,8 @@ import (
 func TestPatchedGoVersionIsPinnedConsistently(t *testing.T) {
 	t.Parallel()
 
-	const patchedVersion = "1.25.8"
-	const vulnerableVersion = "1.25.7"
+	const patchedVersion = "1.25.9"
+	const vulnerableVersion = "1.25.8"
 
 	testCases := []struct {
 		name     string

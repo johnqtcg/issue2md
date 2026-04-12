@@ -1,7 +1,7 @@
 # issue2md
 
 [![CI](https://github.com/johnqtcg/issue2md/actions/workflows/ci.yml/badge.svg)](https://github.com/johnqtcg/issue2md/actions/workflows/ci.yml)
-![Go Version](https://img.shields.io/badge/go-1.25.8-00ADD8)
+![Go Version](https://img.shields.io/badge/go-1.25.9-00ADD8)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 Turn GitHub `Issue`, `Pull Request`, and `Discussion` URLs into clean Markdown for archiving, sharing, and downstream automation. One tool, two entrypoints: use the **CLI** for local export or the **Web service** for browser and API-driven workflows. When `OPENAI_API_KEY` is configured, output can also include a structured `## AI Summary` section with summary, decisions, and action items.
@@ -27,7 +27,7 @@ Language:
 <a id="prerequisites"></a>
 ## Prerequisites
 
-- Go `>= 1.25` (current: `go 1.25.8`) ([download](https://go.dev/dl/))
+- Go `>= 1.25` (current: `go 1.25.9`) ([download](https://go.dev/dl/))
 - A GitHub Personal Access Token with `repo` read permission ([create one](https://github.com/settings/tokens))
 - _(Optional)_ An OpenAI API key — required only for the `## AI Summary` output feature
 - _(Optional)_ Docker — required only for `make docker-build`
