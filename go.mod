@@ -1,6 +1,6 @@
 module github.com/johnqtcg/issue2md
 
-go 1.25.9
+go 1.25.10
 
 require (
 	github.com/google/go-github/v72 v72.0.0
