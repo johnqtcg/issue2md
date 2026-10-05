@@ -160,7 +160,7 @@ source $HOME/.local/bin/env
 
 # 第二步：在项目目录中直接初始化（uvx 会临时下载 specify-cli）
 cd my-project
-uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --ai claude
+uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --integration claude
 ```
 
 **方案 B：全局安装后使用**
@@ -171,9 +171,9 @@ uv tool install git+https://github.com/github/spec-kit.git
 
 # 之后在任意项目中使用
 cd my-project
-specify init --here --force --ai claude      # Claude Code
-specify init --here --force --ai cursor-agent    # Cursor
-specify init --here --force --ai codex --ai-skills  # Codex CLI
+specify init --here --force --integration claude      # Claude Code
+specify init --here --force --integration cursor-agent    # Cursor
+specify init --here --force --integration codex --ai-skills  # Codex CLI
 ```
 
 > `--force` 参数：在**已有文件的项目**中初始化时必须加，跳过"目录非空"的交互确认；空目录可省略。
@@ -395,14 +395,14 @@ source $HOME/.local/bin/env
 
 # 在项目目录初始化
 cd my-project
-uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --ai claude
+uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --integration claude
 ```
 
 或全局安装后使用：
 
 ```bash
 uv tool install git+https://github.com/github/spec-kit.git
-specify init --here --force --ai claude
+specify init --here --force --integration claude
 ```
 
 > `--force` 在已有文件的项目中必须加，空目录可省略。
